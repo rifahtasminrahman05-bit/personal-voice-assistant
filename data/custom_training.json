@@ -1,0 +1,4 @@
+[
+  {"text": "আবহাওয়া কেমন", "intent": "weather"},
+  {"text": "এলএলএম এজেন্ট", "intent": "llm_agent"}
+]
