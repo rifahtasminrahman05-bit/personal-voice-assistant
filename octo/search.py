@@ -13,7 +13,8 @@ import urllib.parse
 
 from .research import clean_text, fetch_url, save_chunks, slugify
 
-UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"}
+UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0",
+      "Accept-Language": "en-US,en;q=0.9"}
 H2_BLOCK = re.compile(r"<h2[^>]*>(.*?)</h2>", re.S)
 ANCHOR = re.compile(r'<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>', re.S)
 TAG = re.compile(r"<[^>]+>")
@@ -34,7 +35,8 @@ def _decode_bing_url(href):
 
 
 def search_bing(query, k=5):
-    url = "https://www.bing.com/search?" + urllib.parse.urlencode({"q": query, "count": k})
+    url = "https://www.bing.com/search?" + urllib.parse.urlencode(
+        {"q": query, "count": k, "mkt": "en-US", "setlang": "en-US"})
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=20) as resp:
         html = resp.read().decode("utf-8", errors="replace")
@@ -56,6 +58,9 @@ def search_bing(query, k=5):
 def search_and_read(query, k=5, fetch=1, save=True):
     """Search the web, optionally read the top pages. Returns (text, sources)."""
     hits = search_bing(query, k=k)
+    keywords = [w.lower() for w in re.findall(r"\w+", query) if len(w) > 2]
+    hits = [h for h in hits if not keywords or
+            any(k in h["title"].lower() or k in h["url"].lower() for k in keywords)]
     if not hits:
         return "", []
     parts, sources = [], []

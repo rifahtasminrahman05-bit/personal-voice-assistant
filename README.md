@@ -50,6 +50,13 @@ python -m octo.research --url https://docs.python.org/3/tutorial/index.html
 python -m octo.research --topic "firewall" --retrain 1000   # collect + retrain
 ```
 
+Deep research — one command: Bing + Wikipedia -> save -> summary:
+
+```bash
+python -m octo.research --deep "sql injection prevention"
+python -m octo.agi --goal "deep research on phishing attacks"
+```
+
 Resume training from a checkpoint (vocab changes are handled). Reuse the saved tokenizer
 to keep vocab stable, and oversample focus files to weight a topic (e.g. programming):
 

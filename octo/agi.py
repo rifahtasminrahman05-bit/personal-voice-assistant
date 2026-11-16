@@ -95,6 +95,11 @@ def tool_logscan(path):
     return analyze_log(path)
 
 
+def tool_deep(topic):
+    from .research import deep_research
+    return deep_research(topic) or "no summary"
+
+
 def tool_answer(prompt, steps=120):
     import torch
     from .chat import load_model, complete
@@ -122,6 +127,10 @@ def plan(goal):
         goal, re.I)
     if conv:
         steps.append(("convert", conv.group(0)))
+    if re.search(r"deep research|গভীর গবেষণা|research deeply", goal.lower()):
+        topic = re.sub(r".*?(deep research|গভীর গবেষণা|research deeply)\s*(on|about)?\s*", "",
+                       goal, flags=re.I, count=1).strip(" .?!") or goal
+        steps.append(("deep", topic))
     if re.search(r"web search|websearch|ইন্টারনেট|ওয়েব সার্চ|google", goal.lower()):
         topic = re.sub(r".*(web ?search|ইন্টারনেট|ওয়েব সার্চ|google)\s*(for|about|করো)?\s*", "", goal,
                        flags=re.I, count=1).strip(" .?!") or goal
@@ -172,6 +181,7 @@ TOOLS = {
     "calc": lambda arg: f"{arg} = {safe_calc(arg)}",
     "convert": tool_convert,
     "websearch": tool_websearch,
+    "deep": tool_deep,
     "hashid": tool_hashid,
     "passcheck": tool_passcheck,
     "logscan": tool_logscan,

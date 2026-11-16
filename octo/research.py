@@ -109,6 +109,33 @@ def save_chunks(chunks, source_label):
     return path, len(body)
 
 
+def deep_research(topic, fetch=3):
+    """Full pipeline: bing + wikipedia -> save -> summary. Returns summary text."""
+    from .search import search_and_read
+    from .summarize import summarize
+
+    print(f"deep research: {topic}")
+    web_body, sources = search_and_read(topic, fetch=fetch, save=False)
+    for src in sources:
+        print(f"  web: {src}")
+    try:
+        wiki_chunks = wiki_topic(topic, "en")
+    except Exception as e:
+        print(f"  wikipedia skipped ({e})")
+        wiki_chunks = []
+
+    chunks = ([f"web sources about {topic}\n{web_body}"] if web_body else []) + wiki_chunks
+    if not chunks:
+        raise SystemExit(f"no sources found for: {topic}")
+    path, n_chars = save_chunks(chunks, f"deep-{slugify(topic)}")
+    print(f"  saved {n_chars:,} chars -> {path}")
+
+    summary = summarize("\n\n".join(chunks), n=4)
+    print("\n=== summary ===")
+    print(summary)
+    return summary
+
+
 def main():
     ap = argparse.ArgumentParser(description="Octo research: collect web text for training.")
     ap.add_argument("--topic", action="append", default=[], help="Wikipedia topic to research (repeatable)")
@@ -117,7 +144,13 @@ def main():
     ap.add_argument("--lang", default="en", help="Wikipedia language (en, bn, ...)")
     ap.add_argument("--retrain", type=int, default=0, metavar="STEPS",
                     help="after collecting, retrain Octo for STEPS steps on all corpora")
+    ap.add_argument("--deep", default=None, metavar="TOPIC",
+                    help="deep research: web + wikipedia, save, and print a summary")
     args = ap.parse_args()
+
+    if args.deep:
+        deep_research(args.deep)
+        return
 
     chunks = []
     label = []
