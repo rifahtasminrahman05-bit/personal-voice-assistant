@@ -1,0 +1,26 @@
+Programming means writing precise instructions that a computer executes. Good programs are correct, readable, and maintainable.
+A variable stores a value. In python you assign with =. Types include int, float, str, bool, list, tuple, dict, set, and None.
+Control flow: if, elif, else decide branches. while repeats until a condition fails. for iterates over sequences. break exits a loop, continue skips to the next step.
+def defines a function. Functions take parameters, return values, and should do one job well. Example: def greet(name): return f"hello {name}".
+Default arguments like def f(x, n=1) let callers omit values. Keyword arguments make calls readable: f(x=3, n=2). *args collects extra positional values, **kwargs collects extra keyword values.
+A class bundles data and behavior. class Dog: def __init__(self, name): self.name = name. Methods are functions defined in a class. Inheritance lets a class reuse another class with class Puppy(Dog).
+Encapsulation hides internal state behind methods. Polymorphism lets different types share one interface. Composition builds objects from parts instead of deep inheritance.
+Errors are normal. try/except catches exceptions: try: risky() except ValueError as e: handle(e). finally always runs. Raise errors with raise ValueError("message") instead of returning magic values.
+A list comprehension builds lists: [x * 2 for x in nums if x > 0]. A dict comprehension: {k: v for k, v in pairs}. Generators with yield produce items lazily and save memory.
+Common data structures: array for indexed access, hash map or dict for key lookup in O(1), stack with append and pop for LIFO, queue for FIFO, heap for smallest first, graph of nodes and edges, tree for hierarchy.
+Binary search needs sorted data: compare the middle, then halve the range. Sorting: merge sort is O(n log n) and stable, quicksort is fast in practice, counting sort works for small integer ranges.
+Two pointers solve pair-sum problems. Sliding windows solve substring problems. Memoization caches recursion results and turns exponential time into linear. Dynamic programming builds answers from smaller subproblems.
+Strings are immutable in python. join is faster than repeated concatenation. split, strip, replace, startswith, and f-strings cover most text work.
+Modules organize code into files. import math or from collections import defaultdict. A virtual environment isolates project dependencies. pip installs packages.
+Testing: pytest finds functions starting with test_. Arrange, act, assert is the basic shape. Mocks replace slow or external parts. Aim for tests that fail when behavior breaks, not when refactoring changes internals.
+Debugging workflow: reproduce the bug, read the traceback bottom up, form a hypothesis, add one probe or breakpoint, verify. import pdb; pdb.set_trace() or breakpoint() starts a debugger.
+Code review checklist: does it solve the stated problem, are names clear, are edge cases handled, are there tests, is there duplicated logic, does error handling make sense.
+Refactoring means improving structure without changing behavior. Extract functions, remove duplication, simplify conditions, and keep commits small.
+Complexity matters at scale. Prefer O(n) over O(n squared). Hash lookups beat linear scans. Measure with timeit before optimizing. Premature optimization creates bugs.
+Clean functions: small, one level of abstraction, no hidden side effects, early returns over deep nesting. Names should say what, comments should say why.
+APIs expose functionality over HTTP. REST uses resources and methods; JSON is the usual format. Handle timeouts, retries with backoff, and rate limits.
+Databases: use parameterized queries always. Indexes speed reads and slow writes. Transactions keep related changes atomic. Migrations change schema safely.
+Concurrency in python: threading for IO bound work, multiprocessing for CPU bound work, asyncio for many network connections. Shared mutable state is the main source of race conditions.
+Version control discipline: small commits, clear messages, branches per feature, pull requests for review, never commit secrets or generated files.
+Reading code is a skill: start from the entry point, follow one request path end to end, run the tests, and sketch the modules on paper.
+A good error message says what failed, why, and what to try next. Bad errors say only error.

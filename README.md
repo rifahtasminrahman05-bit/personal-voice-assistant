@@ -50,10 +50,12 @@ python -m octo.research --url https://docs.python.org/3/tutorial/index.html
 python -m octo.research --topic "firewall" --retrain 1000   # collect + retrain
 ```
 
-Resume training from a checkpoint (vocab changes are handled):
+Resume training from a checkpoint (vocab changes are handled). Reuse the saved tokenizer
+to keep vocab stable, and oversample focus files to weight a topic (e.g. programming):
 
 ```bash
-python -m octo.train --corpus data/octo --steps 5000 --resume octo_checkpoints/octo.pt
+python -m octo.train --corpus data/octo --steps 5000 --resume octo_checkpoints/octo.pt \
+    --tokenizer-file octo_checkpoints/tokenizer.json --oversample "programming.txt:3,coding.txt:2"
 ```
 
 AGI agent mode — goal-driven tool loop (research, RAG search, unit conversion,

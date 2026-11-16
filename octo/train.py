@@ -34,6 +34,10 @@ def main():
     ap.add_argument("--resume", default=None, metavar="CKPT", help="continue training from a checkpoint")
     ap.add_argument("--tokenizer", choices=("char", "bpe"), default="char")
     ap.add_argument("--vocab-size", type=int, default=512, help="BPE vocab size")
+    ap.add_argument("--tokenizer-file", default=None, metavar="JSON",
+                    help="reuse an existing tokenizer.json (keeps vocab stable across runs)")
+    ap.add_argument("--oversample", default=None, metavar="FILE:N,...",
+                    help="repeat these corpus files N times, e.g. programming.txt:3")
     ap.add_argument("--warmup", type=int, default=100, help="LR warmup steps")
     ap.add_argument("--grad-accum", type=int, default=1, help="gradient accumulation steps")
     ap.add_argument("--bf16", action="store_true", help="bfloat16 autocast (CPU/GPU where supported)")
@@ -42,6 +46,12 @@ def main():
     torch.manual_seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    weights = {}
+    if args.oversample:
+        for part in args.oversample.split(","):
+            name, _, count = part.partition(":")
+            weights[os.path.basename(name)] = max(1, int(count or 1))
+
     if os.path.isdir(args.corpus):
         paths = sorted(glob.glob(os.path.join(args.corpus, "**", "*.txt"), recursive=True))
         if not paths:
@@ -49,8 +59,10 @@ def main():
         texts = []
         for p in paths:
             with open(p, "r", encoding="utf-8") as f:
-                texts.append(f.read())
-            print(f"corpus: {p}")
+                content = f.read()
+            repeat = weights.get(os.path.basename(p), 1)
+            texts.extend([content] * repeat)
+            print(f"corpus: {p} (x{repeat})")
         text = "\n".join(texts)
     else:
         with open(args.corpus, "r", encoding="utf-8") as f:
@@ -58,7 +70,10 @@ def main():
     if len(text) < args.block_size + 2:
         raise SystemExit(f"corpus too small ({len(text)} chars) for block_size {args.block_size}")
 
-    if args.tokenizer == "bpe":
+    if args.tokenizer_file:
+        tokenizer = load_tokenizer(args.tokenizer_file)
+        print(f"reusing tokenizer: {args.tokenizer_file} (vocab={len(tokenizer)})")
+    elif args.tokenizer == "bpe":
         print("training BPE tokenizer ...")
         tokenizer = BPETokenizer.train(text, vocab_size=args.vocab_size)
     else:
