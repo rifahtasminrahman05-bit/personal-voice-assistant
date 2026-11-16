@@ -13,6 +13,7 @@ data/music/
 models/
 octo_checkpoints/
 data/octo/research/
+data/octo/agi_memory.txt
 *.zip
 .env
 *.key
