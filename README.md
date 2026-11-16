@@ -79,6 +79,21 @@ Training saves `octo-best.pt` (lowest val loss) alongside `octo.pt`. The intent 
 routes unmatched assistant inputs (e.g. "remember this thing" -> note). Embedding and
 classifier quality scale with how long Octo has been trained.
 
+Pure-NumPy neural network — hand-written MLP (manual backprop + Adam), no PyTorch needed.
+Fast intent detection; tried first by the assistant before the torch head:
+
+```bash
+python -m octo.nnet --train --data data/octo/intents.json
+python -m octo.nnet --predict "আজ বৃষ্টি হবে কি"
+```
+
+Extractive summarizer for research documents and RAG results:
+
+```bash
+python -m octo.summarize --file data/octo/research/agi-firewall.txt --sentences 3
+python -m octo.summarize --query "sql injection" --sentences 3
+```
+
 Bangla text is supported. Research data lands in `data/octo/research/` and checkpoints in
 `octo_checkpoints/` (both gitignored). For ethics: Octo is a learning and defensive-research
 tool, not an attack tool — corpus content stays conceptual (CTF, OWASP, forensics).

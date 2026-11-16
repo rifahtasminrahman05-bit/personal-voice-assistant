@@ -73,9 +73,21 @@ class PersonalBrain:
             return self.process("মনে রাখো " + text)
         if intent == "llm_agent":
             return self.ask_octo(text)
+        if intent == "status":
+            return self.process("সেলফ রিপোর্ট")
+        if intent == "weather":
+            return ("আবহাওয়া ফিচার এখনো যুক্ত হয়নি। শেখার জন্য: "
+                    "agi research weather")
         return ("বুঝতে পারিনি। 'সাহায্য' লিখুন, অথবা 'অক্টো <প্রশ্ন>' দিয়ে built-in LLM-কে জিজ্ঞেস করুন।")
 
     def _guess_intent(self, text):
+        try:
+            from octo import nnet
+            if not hasattr(self, "_nnet"):
+                self._nnet = nnet.load()
+            return nnet.predict(text, self._nnet)[0][0]
+        except Exception:
+            pass
         try:
             from octo.classifier import IntentClassifier
             if not hasattr(self, "_clf"):
