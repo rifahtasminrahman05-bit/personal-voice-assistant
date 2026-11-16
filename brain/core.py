@@ -35,6 +35,13 @@ class PersonalBrain:
                     "python -m octo.train --corpus data/octo --steps 2000")
         (model, tokenizer), device = loaded
         from octo.chat import complete
+        try:
+            from octo.rag import context_for_prompt
+            context = context_for_prompt(prompt)
+            if context:
+                prompt = context + "\n\n" + prompt
+        except Exception:
+            pass
         return complete(model, tokenizer, prompt, 200, 0.8, 40, device).strip()
 
     def process(self, text):

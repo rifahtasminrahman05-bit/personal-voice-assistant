@@ -32,14 +32,28 @@ cybersecurity research (defensive / CTF style). Train it on any text file or dir
 python -m octo.train --corpus data/octo --steps 2000
 python -m octo.chat --checkpoint octo_checkpoints/octo.pt --prompt "hello" --tokens 200
 python -m octo.chat --checkpoint octo_checkpoints/octo.pt   # interactive chat
+python -m octo.train --corpus data/octo --tokenizer bpe --vocab-size 512 --steps 5000  # BPE tokenizer
+python -m octo.chat --checkpoint octo_checkpoints/octo.pt --rag --prompt "how to prevent sql injection"
+```
+
+RAG — retrieve relevant corpus passages to ground answers (also automatic in `অক্টো <প্রশ্ন>`):
+
+```bash
+python -m octo.rag --query "how to prevent sql injection"
 ```
 
 Research mode — collect fresh text from Wikipedia or any URL, then learn it:
 
 ```bash
-python -m octo.research --topic "sql injection prevention" --lang en
+python -m octo.research --topics "cryptography,firewall,phishing" --lang en
 python -m octo.research --url https://docs.python.org/3/tutorial/index.html
 python -m octo.research --topic "firewall" --retrain 1000   # collect + retrain
+```
+
+Resume training from a checkpoint (vocab changes are handled):
+
+```bash
+python -m octo.train --corpus data/octo --steps 5000 --resume octo_checkpoints/octo.pt
 ```
 
 Bangla text is supported. Research data lands in `data/octo/research/` and checkpoints in

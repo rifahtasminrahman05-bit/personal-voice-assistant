@@ -11,7 +11,8 @@ import os
 import torch
 
 from .model import OctoConfig, OctoModel
-from .tokenizer import CharTokenizer
+from .rag import context_for_prompt
+from .tokenizer import load_tokenizer
 
 
 def load_model(checkpoint, device):
@@ -20,11 +21,15 @@ def load_model(checkpoint, device):
     model = OctoModel(cfg).to(device)
     model.load_state_dict(ckpt["model_state"])
     model.eval()
-    tokenizer = CharTokenizer.load(os.path.join(os.path.dirname(checkpoint), "tokenizer.json"))
+    tokenizer = load_tokenizer(os.path.join(os.path.dirname(checkpoint), "tokenizer.json"))
     return model, tokenizer
 
 
-def complete(model, tokenizer, prompt, max_new_tokens, temperature, top_k, device):
+def complete(model, tokenizer, prompt, max_new_tokens, temperature, top_k, device, rag=False):
+    if rag:
+        context = context_for_prompt(prompt)
+        if context:
+            prompt = context + "\n\n" + prompt
     ids = torch.tensor([tokenizer.encode(prompt)], dtype=torch.long, device=device)
     out = model.generate(ids, max_new_tokens, temperature=temperature, top_k=top_k)
     return tokenizer.decode(out[0].tolist())
@@ -37,6 +42,7 @@ def main():
     ap.add_argument("--tokens", type=int, default=200)
     ap.add_argument("--temperature", type=float, default=0.8)
     ap.add_argument("--top-k", type=int, default=40)
+    ap.add_argument("--rag", action="store_true", help="prepend retrieved corpus context to prompts")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -44,7 +50,7 @@ def main():
     print(f"Octo loaded from {args.checkpoint} (device={device}). Type 'bye' to exit.")
 
     if args.prompt is not None:
-        print(complete(model, tokenizer, args.prompt, args.tokens, args.temperature, args.top_k, device))
+        print(complete(model, tokenizer, args.prompt, args.tokens, args.temperature, args.top_k, device, rag=args.rag))
         return
 
     while True:
@@ -55,7 +61,7 @@ def main():
             break
         if not prompt or prompt.lower() in ("bye", "exit", "quit"):
             break
-        print("octo:", complete(model, tokenizer, prompt, args.tokens, args.temperature, args.top_k, device))
+        print("octo:", complete(model, tokenizer, prompt, args.tokens, args.temperature, args.top_k, device, rag=args.rag))
 
 
 if __name__ == "__main__":

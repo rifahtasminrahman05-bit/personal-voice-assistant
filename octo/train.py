@@ -12,7 +12,7 @@ import torch
 
 from .data import encode_corpus, get_batch
 from .model import OctoConfig, OctoModel
-from .tokenizer import CharTokenizer
+from .tokenizer import BPETokenizer, CharTokenizer, load_tokenizer
 
 
 def main():
@@ -31,6 +31,8 @@ def main():
     ap.add_argument("--eval-iters", type=int, default=20)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--resume", default=None, metavar="CKPT", help="continue training from a checkpoint")
+    ap.add_argument("--tokenizer", choices=("char", "bpe"), default="char")
+    ap.add_argument("--vocab-size", type=int, default=512, help="BPE vocab size")
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
@@ -52,7 +54,11 @@ def main():
     if len(text) < args.block_size + 2:
         raise SystemExit(f"corpus too small ({len(text)} chars) for block_size {args.block_size}")
 
-    tokenizer = CharTokenizer.from_text(text)
+    if args.tokenizer == "bpe":
+        print("training BPE tokenizer ...")
+        tokenizer = BPETokenizer.train(text, vocab_size=args.vocab_size)
+    else:
+        tokenizer = CharTokenizer.from_text(text)
     data = encode_corpus(text, tokenizer)
     n_train = int(0.9 * len(data))
     train_data, val_data = data[:n_train], data[n_train:]
@@ -115,7 +121,7 @@ def main():
     ckpt_path = os.path.join(args.out, "octo.pt")
     torch.save({"model_state": model.state_dict(), "config": cfg.__dict__}, ckpt_path)
     tokenizer.save(os.path.join(args.out, "tokenizer.json"))
-    print(f"saved: {ckpt_path}")
+    print(f"saved: {ckpt_path} (tokenizer={args.tokenizer}, vocab={len(tokenizer)})")
 
 
 if __name__ == "__main__":
