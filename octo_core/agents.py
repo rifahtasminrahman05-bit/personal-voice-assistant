@@ -14,7 +14,20 @@ import threading
 from octo.agi import TOOLS, plan
 
 from .cognitive import decompose, reflect
-from .security import AuditLogger, PermissionManager
+from .infrastructure import Scheduler
+from .security import AuditLogger, PermissionManager, redact_secrets
+
+
+def tool_code(code):
+    """Sandboxed code execution tool — used by the coding agent."""
+    from .sandbox_code import run_code
+    result = run_code(code, timeout=5)
+    out = result["stdout"].strip() or result["stderr"].strip() or "(no output)"
+    status = "ok" if result["ok"] else "failed"
+    return f"[{status}] {out[:400]}"
+
+
+TOOLS_EXT = dict(TOOLS, code=tool_code)
 
 
 class Message:
@@ -123,7 +136,7 @@ class AgentOrchestrator:
                     trace.append((tool, reason))
                     continue
                 try:
-                    result = str(TOOLS[tool](arg))
+                    result = str(TOOLS_EXT[tool](arg))
                 except Exception as e:
                     result = f"tool '{tool}' failed: {e}"
                 verdict = self.verifier.verify(result)
@@ -139,3 +152,44 @@ class AgentOrchestrator:
         reflection = reflect(trace)
         self.audit.log("reflection", "orchestrator", str(reflection)[:200])
         return trace, reflection
+
+    def execute_parallel(self, goal, verbose=False):
+        """Parallel Task Processing: independent subtasks run concurrently,
+        each routed to its own agent. Returns merged trace + reflection."""
+        self.audit.log("goal_parallel", "orchestrator", goal)
+        subtasks = decompose(goal)
+        scheduler = Scheduler(workers=min(4, max(1, len(subtasks))))
+
+        def run_sub(sub):
+            agent_name = self.route(sub["task"])
+            trace = []
+            for tool, arg in plan(sub["task"])[:3]:
+                allowed, reason = self._step_allowed(agent_name, tool, arg)
+                if not allowed:
+                    trace.append((tool, reason))
+                    continue
+                try:
+                    result = str(TOOLS_EXT[tool](arg))
+                except Exception as e:
+                    result = f"tool '{tool}' failed: {e}"
+                self.audit.log("tool_call", agent_name, f"{tool}: {result[:100]}")
+                trace.append((tool, result))
+                if tool in ("answer", "code"):
+                    break
+            return agent_name, trace
+
+        for sub in subtasks:
+            scheduler.submit(run_sub, sub)
+        scheduler.shutdown()
+
+        merged = []
+        for status, payload in scheduler.poll():
+            if status == "ok":
+                agent_name, trace = payload
+                for tool, out in trace:
+                    merged.append((f"{agent_name}/{tool}", out))
+                    if verbose:
+                        print(f"[{agent_name}] {tool}: {out[:100]}")
+        reflection = reflect(merged)
+        self.audit.log("reflection_parallel", "orchestrator", str(reflection)[:200])
+        return merged, reflection

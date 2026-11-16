@@ -438,7 +438,7 @@ class TestDesktopSession:
 
     def test_benchmarks_and_skills(self, tmp_path):
         s = self.session(tmp_path)
-        report = s.benchmarks()
+        report = s.suite.run()
         assert report["math"]["score"] == 1.0
         assert isinstance(s.skill_list(), list)
 
@@ -483,3 +483,229 @@ class TestCrossPlatform:
         repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         assert os.path.exists(os.path.join(repo, "octo_desktop.bat"))
         assert os.path.exists(os.path.join(repo, "octo_desktop.command"))
+
+
+class TestTrainV2:
+    def test_train_tiny(self, tmp_path):
+        from octo_core.train_v2 import load_v2, train_v2
+        corpus = str(tmp_path / "c.txt")
+        open(corpus, "w", encoding="utf-8").write("octo learns quickly. " * 40)
+        losses = []
+        path = train_v2(corpus=corpus, out=str(tmp_path / "out"), steps=4,
+                        batch_size=2, block_size=16, n_layer=1, n_head=2,
+                        n_embd=16, n_kv_heads=1, eval_every=2, eval_iters=2,
+                        progress=lambda s, t, l: losses.append(l))
+        assert os.path.exists(path) and len(losses) == 2
+        model, tok = load_v2(path)
+        assert tok is not None and model.cfg.n_kv_heads == 1
+
+    def test_missing_corpus_raises(self, tmp_path):
+        from octo_core.train_v2 import train_v2
+        with pytest.raises(SystemExit):
+            train_v2(corpus=str(tmp_path / "nope"), out=str(tmp_path / "o"), steps=1)
+
+
+class TestSpeculative:
+    def test_speculative_matches_plain_length(self):
+        from octo_core.models import speculative_generate
+        cfg = AdvancedConfig(vocab_size=50, block_size=32, n_layer=1, n_head=2,
+                             n_embd=16, n_kv_heads=1, dropout=0.0)
+        torch.manual_seed(0)
+        target = OctoV2(cfg).eval()
+        draft = OctoV2(cfg).eval()
+        idx = torch.randint(0, 50, (1, 4))
+        out = speculative_generate(target, draft, idx.clone(), 8, k=3)
+        assert out.shape[1] == 12
+
+
+class TestSandboxCode:
+    def test_run_code_ok(self):
+        from octo_core.sandbox_code import run_code
+        r = run_code("print(21*2)")
+        assert r["ok"] and "42" in r["stdout"]
+
+    def test_run_code_error(self):
+        from octo_core.sandbox_code import run_code
+        r = run_code("raise ValueError('boom')")
+        assert not r["ok"] and "boom" in r["stderr"]
+
+    def test_timeout(self):
+        from octo_core.sandbox_code import run_code
+        r = run_code("while True: pass", timeout=2)
+        assert r["timed_out"]
+
+    def test_tests_snippet(self):
+        from octo_core.sandbox_code import run_tests_snippet
+        r = run_tests_snippet("def add(a, b):\n    return a + b\n",
+                              "assert add(2, 3) == 5\nassert add(0, 0) == 0")
+        assert r["ok"]
+
+    def test_tool_code(self):
+        from octo_core.agents import tool_code
+        assert "42" in tool_code("print(6*7)")
+
+
+class TestParallelAgents:
+    def test_execute_parallel(self):
+        orch = AgentOrchestrator()
+        trace, reflection = orch.execute_parallel("calculate 6*7 and then research sql injection")
+        assert trace and reflection["steps"] == len(trace)
+
+    def test_parallel_denied_tool(self):
+        orch = AgentOrchestrator()
+        orch.permissions.grant("security", set())
+        trace, _ = orch.execute_parallel("audit password hash")
+        assert any("permission" in str(o) for _, o in trace)
+
+
+class TestJobs:
+    def test_add_run_due_remove(self, tmp_path):
+        from octo_core.jobs import JobScheduler
+        orch = AgentOrchestrator()
+        sched = JobScheduler(orch, path=str(tmp_path / "jobs.json"))
+        sched.add("nightly", "calculate 2+2", interval_minutes=0)
+        ran = sched.run_due()
+        assert ran and ran[0]["job"] == "nightly"
+        assert sched.list()[0]["runs"] == 1
+        assert sched.remove("nightly") and not sched.list()
+
+    def test_not_due(self, tmp_path):
+        from octo_core.jobs import JobScheduler
+        sched = JobScheduler(AgentOrchestrator(), path=str(tmp_path / "j.json"))
+        job = sched.add("x", "goal", interval_minutes=1440)
+        job["last_run"] = __import__("time").time()
+        assert not sched.due(job)
+
+
+class TestBenchHistory:
+    def test_record_trend(self, tmp_path):
+        from octo_core.benchhistory import BenchmarkHistory
+        h = BenchmarkHistory(str(tmp_path / "b.jsonl"))
+        h.record({"math": {"score": 0.5}})
+        h.record({"math": {"score": 1.0}})
+        trend = h.trend(("math", "score"))
+        assert trend["direction"] == "improving" and len(trend["history"]) == 2
+
+    def test_not_enough(self, tmp_path):
+        from octo_core.benchhistory import BenchmarkHistory
+        h = BenchmarkHistory(str(tmp_path / "b.jsonl"))
+        h.record({"math": {"score": 0.5}})
+        assert h.trend(("math", "score"))["direction"] == "not-enough-data"
+
+
+class TestSettings:
+    def test_roundtrip(self, tmp_path):
+        from octo_core.settings import Settings
+        s = Settings(str(tmp_path / "s.json"))
+        s.set("temperature", 0.5)
+        s.set("language", "en")
+        loaded = Settings(str(tmp_path / "s.json"))
+        assert loaded.get("temperature") == 0.5 and loaded.get("language") == "en"
+        loaded.reset()
+        assert loaded.get("temperature") == 0.8
+
+
+class TestMemoryExport:
+    def test_export_import(self, tmp_path):
+        mem = MemoryManager()
+        mem.remember("octo", "is", "exportable", source="test")
+        path = str(tmp_path / "mem.json")
+        state = mem.export_json(path)
+        assert len(state["facts"]) >= 1
+        mem2 = MemoryManager()
+        n = mem2.import_json(path)
+        assert n >= 1 and mem2.graph.query("octo", "is")
+
+    def test_encrypted_episodic(self, tmp_path):
+        from octo_core.memory import EncryptedEpisodicMemory
+        em = EncryptedEpisodicMemory(str(tmp_path / "e.jsonl"))
+        em.record("goal", "secret plan")
+        assert any("secret plan" in l for l in em.timeline())
+
+
+class TestEvolution:
+    def test_redteam(self):
+        from octo_core.evolution import RedTeamSuite
+        r = RedTeamSuite().run(lambda t: detect_prompt_injection(t)[0] != "none")
+        assert r["pass_rate"] >= 0.9
+
+    def test_manifest(self):
+        from octo_core.evolution import capability_manifest
+        caps = capability_manifest()
+        assert any(c["id"] == "transformer" for c in caps["capabilities"])
+        assert any("AGI" in l for l in caps["limitations"])
+
+    def test_save_manifest(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        from octo_core.evolution import save_manifest
+        caps = save_manifest(str(tmp_path / "caps.json"))
+        assert os.path.exists(str(tmp_path / "caps.json")) and caps["name"] == "Octo"
+
+    def test_distill_reduces_loss(self, tmp_path):
+        from octo_core.evolution import distill
+        torch.manual_seed(0)
+        cfg = AdvancedConfig(vocab_size=40, block_size=16, n_layer=1, n_head=2,
+                             n_embd=16, n_kv_heads=1, dropout=0.0)
+        torch.manual_seed(1)
+        student = OctoV2(cfg).eval()
+        torch.manual_seed(2)
+        teacher = OctoV2(cfg).eval()
+        data = torch.randint(0, 40, (200,))
+        student = distill(teacher, student, data, steps=3, batch_size=4, device="cpu")
+        assert student.eval()
+
+    def test_continual_propose_evaluate(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        from octo_core.evolution import ContinualLearner
+        corpus = tmp_path / "new.txt"
+        corpus.write_text("incremental data. " * 50, encoding="utf-8")
+        learner = ContinualLearner(base_checkpoint=str(tmp_path / "base.pt"),
+                                   workdir=str(tmp_path / "work"))
+        proposal = learner.propose(str(corpus), steps=2)
+        assert proposal["status"] == "proposed" and os.path.exists(proposal["candidate"])
+        evaluated = learner.evaluate(proposal, {"loss": 1.0})
+        assert evaluated["status"] in ("ready", "regressed")
+        assert learner.promote(evaluated, approve=lambda i, d: False) is False
+        assert evaluated["status"] == "rejected"
+
+
+class TestResearchX:
+    def test_cross_check_offline_graceful(self):
+        from octo_core.researchx import cross_check
+        r = cross_check("octo test query xyz")
+        assert set(r) == {"query", "sources", "agreed", "unique"}
+
+
+class TestSessionPhase8to12:
+    def test_chat_checked_badge(self, tmp_path):
+        from octo_core.desktop import OctoSession
+        s = OctoSession(roots=(make_corpus(tmp_path),), checkpoint="/nonexistent")
+        answer, badge = s.chat_checked("hello there")
+        assert "train" in answer and badge == ""
+
+    def test_settings_integration(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        from octo_core.desktop import OctoSession
+        s = OctoSession(roots=(make_corpus(tmp_path),), checkpoint="/nonexistent")
+        s.set_setting("quantized", True)
+        assert s.status()["quantized"] is True
+
+    def test_redteam_and_manifest_session(self, tmp_path):
+        from octo_core.desktop import OctoSession
+        s = OctoSession(roots=(make_corpus(tmp_path),), checkpoint="/nonexistent")
+        assert s.redteam_run()["pass_rate"] >= 0.9
+        assert s.manifest()["runtime"]["checkpoint_ready"] is False
+
+    def test_benchmarks_recorded(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        from octo_core.desktop import OctoSession
+        s = OctoSession(roots=(make_corpus(tmp_path),), checkpoint="/nonexistent")
+        report, trend = s.benchmarks_recorded()
+        assert report["math"]["score"] == 1.0
+        assert trend["direction"] == "not-enough-data"
+
+    def test_voice_graceful(self, tmp_path):
+        from octo_core.desktop import OctoSession
+        s = OctoSession(roots=(make_corpus(tmp_path),), checkpoint="/nonexistent")
+        out = s.voice_listen()
+        assert isinstance(out, str) and out

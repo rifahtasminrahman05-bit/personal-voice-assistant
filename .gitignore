@@ -23,3 +23,10 @@ data/octo/episodes.jsonl
 data/octo/skills.json
 data/octo/feedback.jsonl
 octo_checkpoints/proposals/
+build/
+dist/
+*.spec
+data/octo/benchmarks.jsonl
+data/octo/jobs.json
+data/octo/settings.json
+data/octo/capabilities.json

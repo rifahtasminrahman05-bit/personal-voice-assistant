@@ -258,13 +258,64 @@ octo_desktop.bat                 # অথবা Explorer-এ ডাবল-ক্
 উভয় প্ল্যাটফর্মে checkpoint ও data পাথ রিপো রুটে anchor করা — যেখান থেকেই
 চালান না কেন, সব ফাইল সঠিক জায়গায় থাকবে।
 
-Tests (73 unit tests in `tests/test_octo_core.py`: cognitive, security,
-memory, OctoV2 model, agents, learning, evaluation, infrastructure,
-multimodal, main pipeline, desktop session/app, cross-platform):
+## Phase 8–12: Advanced Capabilities
+
+### OctoV2 training pipeline (Phase 9)
 
 ```bash
-python -m pytest tests/ -q
+python -m octo_core.train_v2 --corpus data/octo --steps 2000
 ```
+
+RoPE + GQA + KV-cache মডেল প্রশিক্ষণ, progress callback সহ (desktop Train ট্যাব
+এটাই ব্যবহার করে)। Speculative decoding (`octo_core.models.speculative_generate`),
+int8 quantized runtime (Settings → quantized on, `octo.quantize` দিয়ে তৈরি
+`octo-int8.pt` লোড হয়), এবং Bengali-aware BPE pre-tokenization যোগ হয়েছে।
+
+### Agent upgrades (Phase 10)
+
+- **Sandboxed code execution** — `octo_core/sandbox_code.py`: subprocess + timeout +
+  POSIX memory/CPU limits; coding agent-এর `code` টুল এটাই ব্যবহার করে
+- **Parallel multi-agent** — `orchestrator.execute_parallel(goal)`: স্বাধীন subtask
+  একসাথে চলে
+- **Research cross-check** — `octo_core.researchx.cross_check(query)`: multi-source
+  agreement + citation list
+- **Scheduled jobs** — `octo_core/jobs.py`: cron-style recurring goals, `jobs.json`-এ persist
+
+### Trust & scale (Phase 11)
+
+- **Benchmark dashboard** — `octo_core/benchhistory.py`: প্রতি run record + trend
+  (improving/declining); desktop Benchmarks ট্যাবে "Run + record" ও "Show trend"
+- **Hallucination guard** — desktop chat-এ প্রতিটি উত্তরে grounding badge
+- **Cross-platform CI** — GitHub Actions ubuntu/windows/macos matrix + benchmark smoke job
+- **Memory export/import** — Memory ট্যাব থেকে JSON backup/restore
+- **Encrypted episodic memory** — `EncryptedEpisodicMemory` (Fernet থাকলে)
+
+### Controlled self-evolution (Phase 12)
+
+`octo_core/evolution.py`:
+
+- **ContinualLearner** — নতুন ডেটা → isolated candidate checkpoint → regression
+  check → human approval → promote (production কখনো auto-touch হয় না)
+- **distill()** — teacher→student knowledge distillation (KL + CE)
+- **RedTeamSuite** — adversarial prompt bank vs injection guard (CI-তেও চলে)
+- **capability_manifest()** — structured self-report of capabilities + limitations
+
+### Desktop packaging (Phase 8)
+
+```bash
+pip install pyinstaller
+python build_desktop.py     # dist/OctoDesktop.app (macOS) / dist/OctoDesktop (Windows/Linux)
+```
+
+Desktop-এ নতুন ট্যাব: 🏋 Train (OctoV2), ⚙ Settings (temperature/top_k/language/quantized —
+`settings.json`-এ persist), benchmark trend, red-team button, memory export/import,
+এবং sensitive কাজে human-approval dialog।
+
+Tests (144 unit tests in `tests/test_octo_core.py`: cognitive, security,
+memory, OctoV2 model + speculative, agents + parallel, learning, evaluation,
+infrastructure, multimodal, main pipeline, desktop session/app,
+cross-platform, train_v2, sandbox code, jobs, bench history, settings,
+memory export, evolution/red-team/distill/continual):
 
 CI runs the test suite on every push/PR (`.github/workflows/ci.yml`).
 

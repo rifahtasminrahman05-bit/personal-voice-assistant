@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 """Tokenizers for Octo: char-level and BPE (byte pair encoding), no external deps."""
 import json
+import re
 from collections import Counter
 
 UNK = "<unk>"
+
+
+def smart_words(text):
+    """Unicode-aware pre-tokenization: words (incl. Bengali) kept whole,
+    punctuation split off — better compression for mixed Bangla/English text."""
+    return re.findall(r"[\w]+|[^\w\s]", text)
 
 
 class CharTokenizer:
@@ -62,11 +69,12 @@ class BPETokenizer:
         self.itos = list(vocab or [])
         self.stoi = {tok: i for i, tok in enumerate(self.itos)}
         self._cache = {}
+        self.smart = False
 
     @classmethod
-    def train(cls, text, vocab_size=512, max_chars=500_000):
+    def train(cls, text, vocab_size=512, max_chars=500_000, smart=False):
         text = text[:max_chars]
-        words = [w + cls.END for w in text.split()]
+        words = [w + cls.END for w in (smart_words(text) if smart else text.split())]
         base = sorted({ch for w in words for ch in w})
         num_merges = max(0, vocab_size - len(base))
         symbols_per_word = [list(w) for w in words]
@@ -82,7 +90,9 @@ class BPETokenizer:
             merged = pair[0] + pair[1]
             symbols_per_word = [_merge(sym, pair, merged) for sym in symbols_per_word]
         vocab = base + [a + b for a, b in merges] + [UNK]
-        return cls(vocab, merges)
+        tok = cls(vocab, merges)
+        tok.smart = smart
+        return tok
 
     def __len__(self):
         return len(self.itos)
@@ -102,7 +112,7 @@ class BPETokenizer:
 
     def encode(self, text):
         ids = []
-        for word in text.split():
+        for word in (smart_words(text) if self.smart else text.split()):
             ids.extend(self._encode_word(word))
         return ids
 
@@ -113,12 +123,15 @@ class BPETokenizer:
     def save(self, path):
         with open(path, "w", encoding="utf-8") as f:
             json.dump({"type": self.type, "vocab": self.itos,
-                       "merges": [list(m) for m in self.merges]}, f, ensure_ascii=False)
+                       "merges": [list(m) for m in self.merges],
+                       "smart": getattr(self, "smart", False)}, f, ensure_ascii=False)
 
 
 def load_tokenizer(path):
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     if data.get("type") == "bpe":
-        return BPETokenizer(data["vocab"], data.get("merges"))
+        tok = BPETokenizer(data["vocab"], data.get("merges"))
+        tok.smart = bool(data.get("smart", False))
+        return tok
     return CharTokenizer(data["vocab"])

@@ -189,17 +189,31 @@ class OctoV2(nn.Module):
 
 
 class ModelRouter:
-    """Model Routing System: cheapest capable backend per task."""
+    """Model Routing System: cheapest capable backend per task.
 
-    def __init__(self, checkpoint="octo_checkpoints/octo.pt", device="cpu"):
+    Supports a quantized runtime: pass `quantized=True` to load the int8
+    checkpoint produced by `python -m octo.quantize` (falls back to the
+    full checkpoint when it does not exist).
+    """
+
+    def __init__(self, checkpoint="octo_checkpoints/octo.pt", device="cpu",
+                 quantized=False):
         self.checkpoint = checkpoint
         self.device = device
+        self.quantized = quantized
         self._octo = None
 
+    def _checkpoint_path(self):
+        if self.quantized:
+            qpath = os.path.splitext(self.checkpoint)[0] + "-int8.pt"
+            if os.path.exists(qpath):
+                return qpath
+        return self.checkpoint
+
     def _octo_ready(self):
-        if self._octo is None and os.path.exists(self.checkpoint):
+        if self._octo is None and os.path.exists(self._checkpoint_path()):
             from octo.chat import load_model
-            self._octo = load_model(self.checkpoint, self.device)
+            self._octo = load_model(self._checkpoint_path(), self.device)
         return self._octo
 
     def route(self, task_type):
@@ -218,3 +232,41 @@ class ModelRouter:
         model, tokenizer = ready
         from octo.chat import complete
         return complete(model, tokenizer, prompt, steps, 0.8, 40, self.device).strip()
+
+
+@torch.no_grad()
+def speculative_generate(target, draft, idx, max_new_tokens, k=4,
+                         temperature=1.0, top_k=None):
+    """Speculative Decoding: a small draft model proposes k tokens at a time;
+    the target model verifies them in one batched forward pass and corrects
+    the first mismatch. Returns the full sequence including the prompt.
+
+    Both models must share the tokenizer/vocab. Greedy verification keeps
+    output quality equal to target-only decoding.
+    """
+    target.eval(), draft.eval()
+    produced = idx
+    generated = 0
+    while generated < max_new_tokens:
+        n_draft = min(k, max_new_tokens - generated)
+        draft_seq = draft.generate(produced, n_draft, temperature, top_k,
+                                   use_cache=True)[:, produced.size(1):]
+        candidate = torch.cat([produced, draft_seq], dim=1)
+        logits, _, _ = target(candidate[:, :-1])
+        pred = logits[:, -draft_seq.size(1):, :].argmax(-1)
+        accepted = 0
+        for i in range(n_draft):
+            if pred[0, i].item() == draft_seq[0, i].item():
+                accepted += 1
+            else:
+                break
+        if accepted < n_draft:
+            new_tokens = torch.cat([draft_seq[:, :accepted],
+                                    pred[:, accepted:accepted + 1]], dim=1)
+        else:
+            new_tokens = draft_seq
+        produced = torch.cat([produced, new_tokens], dim=1)
+        generated += new_tokens.size(1)
+        if produced.size(1) > target.cfg.block_size:
+            produced = produced[:, -target.cfg.block_size:]
+    return produced

@@ -6,6 +6,7 @@ memory, hybrid retrieval (RAG + graph facts), conversation compression and a
 MemoryManager facade. All storage is local files/SQLite — no external deps.
 """
 import datetime
+import json
 import os
 import re
 import threading
@@ -81,6 +82,10 @@ class KnowledgeGraph:
             if not frontier:
                 break
         return seen
+
+    def all_facts(self):
+        with self._lock:
+            return list(self._facts)
 
     def __len__(self):
         return len(self._facts)
@@ -195,3 +200,71 @@ class MemoryManager:
         """Knowledge Provenance Tracking: where a stored fact came from."""
         return [{"source": f["source"], "ts": f["ts"], "confidence": f["confidence"]}
                 for f in self.graph.query(subject, relation)]
+
+    def export_json(self, path):
+        """Export the full memory state (facts + episodes) as JSON backup."""
+        state = {"facts": self.graph.all_facts(),
+                 "episodes": self.episodic.timeline(5000)}
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=1)
+        return state
+
+    def import_json(self, path):
+        """Restore facts (and episode lines) from a backup file."""
+        with open(path, "r", encoding="utf-8") as f:
+            state = json.load(f)
+        restored = 0
+        for fact in state.get("facts", []):
+            self.graph.add_fact(fact["subject"], fact["relation"], fact["object"],
+                                source=fact.get("source", "imported"),
+                                confidence=fact.get("confidence", 0.7))
+            restored += 1
+        for line in state.get("episodes", []):
+            self.episodic.record("imported", line[:200])
+        return restored
+
+
+class EncryptedEpisodicMemory(EpisodicMemory):
+    """Data Privacy Layer: episodic memory encrypted at rest via Fernet.
+
+    Requires `cryptography` and an unlocked EncryptionManager; falls back to
+    plaintext behavior (with a marker) when encryption is unavailable so the
+    app never crashes over an optional dependency.
+    """
+
+    def __init__(self, path="data/octo/episodes.jsonl", manager=None):
+        super().__init__(path=path)
+        self.manager = manager
+
+    def _ready(self):
+        return self.manager is not None and getattr(self.manager, "unlocked", lambda: False)()
+
+    def record(self, event, detail=""):
+        if self._ready():
+            token = self.manager.encrypt(f"{event} | {detail}")
+            entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"),
+                     "event": "encrypted", "detail": token}
+            with self._lock:
+                with open(self.path, "a", encoding="utf-8") as f:
+                    f.write(entry["ts"] + " | " + entry["event"] + " | "
+                            + entry["detail"].replace("\n", " ") + "\n")
+            return entry
+        return super().record(event, detail)
+
+    def timeline(self, n=20):
+        lines = super().timeline(n)
+        if not self._ready():
+            return lines
+        out = []
+        for line in lines:
+            parts = line.split(" | ", 2)
+            if len(parts) == 3 and parts[1] == "encrypted":
+                try:
+                    out.append(parts[0] + " | " + self.manager.decrypt(parts[2].strip()))
+                    continue
+                except Exception:
+                    out.append(parts[0] + " | (encrypted, unlock to read)")
+            else:
+                out.append(line)
+        return out
