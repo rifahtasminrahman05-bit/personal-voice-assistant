@@ -123,6 +123,22 @@ python -m octo.pro --train --data data/octo/pro_train.jsonl
 python -m octo.pro --prompt "How do I prevent SQL injection?"
 ```
 
+SecOps toolkit — educational, defensive/CTF-style security tools (no attack tooling):
+
+```bash
+python -m octo.secops hashid 8d969eef...        # identify hash type
+python -m octo.secops passcheck "P@ssw0rd"    # password strength audit
+python -m octo.secops genpass --length 20       # strong password
+python -m octo.secops decode "aGVsbG8="         # base64/hex decode
+python -m octo.secops caesar "Khoor Zruog"      # Caesar cracking (CTF)
+python -m octo.secops logscan data/auth.log     # brute-force / scan detection
+python -m octo.secops cve "log4j"               # CVE lookup via web
+```
+
+AGI can use them too: `agi check hash <hex>`, `agi passcheck "..."`, `agi logscan file.log`.
+Ethical-hacking methodology corpus: `data/octo/ethhacking.txt` (pentest phases, tools
+overview, hardening, ATT&CK, red/blue/purple — conceptual and defensive).
+
 GUI chat (Tkinter):
 
 ```bash

@@ -78,6 +78,23 @@ def tool_websearch(query):
     return f"read {len(sources)} page(s), {len(body):,} chars. first source: {sources[0] if sources else '-'}"
 
 
+def tool_hashid(value):
+    from .secops import identify_hash
+    return "possible hash types: " + ", ".join(identify_hash(value))
+
+
+def tool_passcheck(password):
+    from .secops import password_strength
+    score, label, feedback, entropy = password_strength(password)
+    out = f"strength {score}/4 ({label}), entropy {entropy:.0f} bits"
+    return out + (" | " + "; ".join(feedback) if feedback else "")
+
+
+def tool_logscan(path):
+    from .secops import analyze_log
+    return analyze_log(path)
+
+
 def tool_answer(prompt, steps=120):
     import torch
     from .chat import load_model, complete
@@ -114,6 +131,19 @@ def plan(goal):
                        flags=re.I, count=1).strip(" .?!")
         if topic:
             steps.append(("research", topic))
+    hashish = re.search(r"\b[0-9a-f]{32,64}\b|hash", goal.lower())
+    if hashish:
+        m = re.search(r"\b[0-9a-f]{32,64}\b", goal)
+        if m:
+            steps.append(("hashid", m.group(0)))
+    if re.search(r"password (strength|check|audit)|পাসওয়ার্ড চেক|passcheck", goal.lower()):
+        m = re.search(r'["\'](.+)["\']', goal)
+        if m:
+            steps.append(("passcheck", m.group(1)))
+    if re.search(r"log ?scan|analyze log|লগ বিশ্লেষণ", goal.lower()):
+        m = re.search(r"([\w/\.\-]+\.log)", goal)
+        if m:
+            steps.append(("logscan", m.group(1)))
     steps.append(("search", goal))
     steps.append(("answer", goal))
     return steps
@@ -142,6 +172,9 @@ TOOLS = {
     "calc": lambda arg: f"{arg} = {safe_calc(arg)}",
     "convert": tool_convert,
     "websearch": tool_websearch,
+    "hashid": tool_hashid,
+    "passcheck": tool_passcheck,
+    "logscan": tool_logscan,
     "research": tool_research,
     "search": tool_search_corpus,
     "answer": tool_answer,
