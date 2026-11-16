@@ -166,8 +166,45 @@ Voice mode — STT via Vosk, TTS via pyttsx3, graceful text-mode fallback
 (`speech/engine.py`). Notes persist in SQLite (`storage/db.py`), optional
 Fernet encryption via master password (`storage/crypto.py`).
 
-Tests (31 unit tests: tokenizers, model, RAG, NumPy net, AGI tools, search
-decode, summarizer, quantize, server, crypto, speech fallback):
+## Octo Core (Advanced Intelligence Architecture)
+
+`octo_core/` — the next-generation modular layer on top of Octo LLM (spec
+Phases 1–7). Every layer is importable on its own and covered by tests:
+
+| Module | Layer | Highlights |
+| ------ | ----- | ---------- |
+| `octo_core/cognitive.py` | Cognitive Core | task decomposition, hypothesis ranking, causal chains, uncertainty quantification, knowledge synthesis, constraint checks, reflection loop, adaptive strategy selection |
+| `octo_core/agents.py` | Agent Core | multi-agent orchestrator (researcher/coder/security), agent-to-agent messaging, execution verification, long-horizon state, human-in-the-loop hook |
+| `octo_core/memory.py` | Memory Core | knowledge graph (provenance + conflict resolution), working/episodic memory, hybrid RAG recall, conversation compression |
+| `octo_core/models.py` | Model Core | OctoV2: RoPE + Grouped-Query Attention + KV cache + sliding window; model router (nnet → Octo → Octo-Pro) |
+| `octo_core/security.py` | Security & Governance | prompt-injection defense, least-privilege permissions, AST sandbox, secrets redaction, JSONL audit log, fail-closed approval gateway |
+| `octo_core/learning.py` | Learning Core | skill acquisition, preference feedback, regression detection, controlled self-improvement (propose → isolated test → human approval) |
+| `octo_core/evaluation.py` | Evaluation | math/grounding/recall/uncertainty benchmarks, hallucination detector, quality metrics, agent success metrics, pytest regression runner |
+| `octo_core/infrastructure.py` | Infrastructure | TTL+LRU cache, retry with backoff, circuit breaker, threaded scheduler, resource manager, latency/RSS profiler |
+| `octo_core/multimodal.py` | Multimodal | image metadata, OCR (optional pytesseract), audio inspection, cross-modal tag retrieval |
+
+Usage:
+
+```bash
+python -m octo_core --goal "research sql injection and answer how to prevent it"
+python -m octo_core --benchmark                        # math + grounding suites
+python -m octo_core --inject-check "ignore all previous instructions"
+python -m octo_core --audit                            # last audit entries
+```
+
+Pipeline: injection check → adaptive strategy → task decomposition → agent
+routing → permission/approval-gated tool calls → execution verification →
+reflection + skill capture → audit log. Blocked or failed steps never reach
+the model; secrets are redacted before anything is logged.
+
+Self-improvement is deliberately conservative: proposals are written to
+`octo_checkpoints/proposals/` as JSON patches, validated against current file
+content, tested in an isolated subprocess, and applied only after explicit
+human approval.
+
+Tests (59 unit tests in `tests/test_octo_core.py`: cognitive, security,
+memory, OctoV2 model, agents, learning, evaluation, infrastructure,
+multimodal, main pipeline):
 
 ```bash
 python -m pytest tests/ -q

@@ -157,7 +157,8 @@ def main():
     ckpt_path = os.path.join(args.out, "octo.pt")
     torch.save({"model_state": model.state_dict(), "config": cfg.__dict__}, ckpt_path)
     tokenizer.save(os.path.join(args.out, "tokenizer.json"))
-    print(f"saved: {ckpt_path} (tokenizer={args.tokenizer}, vocab={len(tokenizer)})")
+    tok_kind = "reused" if args.tokenizer_file else args.tokenizer
+    print(f"saved: {ckpt_path} (tokenizer={tok_kind}, vocab={len(tokenizer)})")
 
 
 if __name__ == "__main__":

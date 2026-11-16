@@ -18,3 +18,8 @@ data/octo/agi_memory.txt
 *.zip
 .env
 *.key
+data/octo/audit.jsonl
+data/octo/episodes.jsonl
+data/octo/skills.json
+data/octo/feedback.jsonl
+octo_checkpoints/proposals/
