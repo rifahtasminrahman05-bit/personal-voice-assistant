@@ -7,6 +7,7 @@ circuit breaker), resource manager and a lightweight performance profiler.
 import functools
 import os
 import queue
+import sys
 import threading
 import time
 
@@ -162,6 +163,8 @@ class ResourceManager:
     def pick_device():
         if torch_cuda_available():
             return "cuda"
+        if torch_mps_available():
+            return "mps"
         return "cpu"
 
     @staticmethod
@@ -171,14 +174,24 @@ class ResourceManager:
             mem = torch.get_num_threads()
         except Exception:
             mem = 0
+        device = "cuda" if torch_cuda_available() else \
+            "mps" if torch_mps_available() else "cpu"
         return {"cpu_count": os.cpu_count(), "torch_threads": mem,
-                "device": "cuda" if torch_cuda_available() else "cpu"}
+                "device": device, "os": sys.platform}
 
 
 def torch_cuda_available():
     try:
         import torch
         return torch.cuda.is_available()
+    except Exception:
+        return False
+
+
+def torch_mps_available():
+    try:
+        import torch
+        return bool(torch.backends.mps.is_available())
     except Exception:
         return False
 

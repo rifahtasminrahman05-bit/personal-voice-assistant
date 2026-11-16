@@ -463,3 +463,23 @@ class TestDesktopApp:
         titles = [app.notebook.tab(t, "text") for t in app.notebook.tabs()]
         assert len(titles) == 6
         root.destroy()
+
+
+class TestCrossPlatform:
+    def test_pick_device_valid(self):
+        from octo_core.infrastructure import ResourceManager
+        assert ResourceManager.pick_device() in ("cuda", "mps", "cpu")
+
+    def test_report_has_os(self):
+        from octo_core.infrastructure import ResourceManager
+        assert ResourceManager.report()["os"] in ("linux", "darwin", "win32")
+
+    def test_checkpoint_anchored_to_repo(self):
+        from octo_core.desktop import BASE_DIR, CHECKPOINT
+        assert os.path.isabs(CHECKPOINT)
+        assert CHECKPOINT.startswith(BASE_DIR)
+
+    def test_launchers_exist(self):
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        assert os.path.exists(os.path.join(repo, "octo_desktop.bat"))
+        assert os.path.exists(os.path.join(repo, "octo_desktop.command"))

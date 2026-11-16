@@ -14,7 +14,8 @@ from .main import run_goal
 from .memory import MemoryManager
 from .security import AuditLogger, detect_prompt_injection, redact_secrets
 
-CHECKPOINT = os.path.join("octo_checkpoints", "octo.pt")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CHECKPOINT = os.path.join(BASE_DIR, "octo_checkpoints", "octo.pt")
 
 
 class OctoSession:

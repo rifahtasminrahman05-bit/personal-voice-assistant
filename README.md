@@ -226,9 +226,41 @@ python octo_desktop.py
 সব লজিক `OctoSession` ক্লাসে (display-independent) — Tk ছাড়াই টেস্টেবল।
 GUI নির্ভরতা: Python-এর built-in Tkinter (Linux-এ `sudo apt install python3-tk`)।
 
-Tests (69 unit tests in `tests/test_octo_core.py`: cognitive, security,
+### macOS ও Windows-এ চালানো
+
+**macOS:**
+
+```bash
+# 1. Python 3 (python.org installer — Tkinter সহ) অথবা:
+brew install python-tk
+# 2. নির্ভরতা
+pip3 install torch numpy
+# 3. চালান (দুইভাবে)
+python3 octo_desktop.py          # টার্মিনাল থেকে
+open octo_desktop.command        # অথবা Finder-এ ডাবল-ক্লিক
+```
+
+Apple Silicon-এ Octo Core স্বয়ংক্রিয়ভাবে **MPS** (GPU acceleration) ব্যবহার করে
+(দেখুন ⚙ Status ট্যাব)। প্রথমবার `octo_desktop.command` খুললে Gatekeeper আটকালে
+right-click → Open চাপুন।
+
+**Windows:**
+
+```powershell
+# 1. Python 3 ইনস্টল করুন python.org থেকে ("tcl/tk and IDLE" চেকবক্স সহ)
+# 2. নির্ভরতা
+pip install torch numpy
+# 3. চালান (দুইভাবে)
+python octo_desktop.py           # টার্মিনাল থেকে
+octo_desktop.bat                 # অথবা Explorer-এ ডাবল-ক্লিক
+```
+
+উভয় প্ল্যাটফর্মে checkpoint ও data পাথ রিপো রুটে anchor করা — যেখান থেকেই
+চালান না কেন, সব ফাইল সঠিক জায়গায় থাকবে।
+
+Tests (73 unit tests in `tests/test_octo_core.py`: cognitive, security,
 memory, OctoV2 model, agents, learning, evaluation, infrastructure,
-multimodal, main pipeline, desktop session/app):
+multimodal, main pipeline, desktop session/app, cross-platform):
 
 ```bash
 python -m pytest tests/ -q
