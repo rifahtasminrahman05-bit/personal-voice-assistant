@@ -56,6 +56,7 @@ Wake word (if enabled): `hey_mycroft` model / say **hey brain** in software list
 - Web: `আবহাওয়া` | `নিউজ` | `উইকি` | `গবেষণা করো`
 - Voice control: `ভয়েস কন্ট্রোল` | `ক্রোম খোল` | `স্ক্রিনশট`
 - Agent: `এলএলএম এজেন্ট ...` | `এজেন্ট গবেষণা ...`
+- Octo LLM: `অক্টো <প্রশ্ন>` — built-in offline LLM উত্তর (train করা থাকলে)
 - Learn: `শেখাও টেক্সট | intent` | `ভুল, এটা জোক ছিল`
 - Exit: `bye` / `বন্ধ`
 

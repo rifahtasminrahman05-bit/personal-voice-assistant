@@ -9,6 +9,8 @@ Usage:
 import argparse
 import os
 import re
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from html.parser import HTMLParser
@@ -38,9 +40,20 @@ class TextExtractor(HTMLParser):
             self.parts.append(data)
 
 
-def fetch_url(url):
+def _open(url, timeout=20, retries=3):
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=20) as resp:
+    for attempt in range(retries):
+        try:
+            return urllib.request.urlopen(req, timeout=timeout)
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 503) and attempt < retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            raise
+
+
+def fetch_url(url):
+    with _open(url) as resp:
         raw = resp.read().decode("utf-8", errors="replace")
     if "<html" not in raw.lower():
         return raw
@@ -63,17 +76,18 @@ def wiki_topic(topic, lang="en"):
         "srsearch": topic, "srlimit": 3,
     })
     req = urllib.request.Request(f"{api}?{query}", headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=20) as resp:
+    with _open(f"{api}?{query}") as resp:
         hits = [h["title"] for h in __import__("json").load(resp)["query"]["search"]]
 
     chunks = []
     for title in hits:
+        time.sleep(1.0)
         params = urllib.parse.urlencode({
             "action": "query", "format": "json", "titles": title,
             "prop": "extracts", "explaintext": 1, "redirects": 1,
         })
         req = urllib.request.Request(f"{api}?{params}", headers={"User-Agent": USER_AGENT})
-        with urllib.request.urlopen(req, timeout=20) as resp:
+        with _open(f"{api}?{params}") as resp:
             pages = __import__("json").load(resp)["query"]["pages"]
             for page in pages.values():
                 extract = page.get("extract", "")
@@ -97,7 +111,8 @@ def save_chunks(chunks, source_label):
 
 def main():
     ap = argparse.ArgumentParser(description="Octo research: collect web text for training.")
-    ap.add_argument("--topic", default=None, help="Wikipedia topic to research")
+    ap.add_argument("--topic", action="append", default=[], help="Wikipedia topic to research (repeatable)")
+    ap.add_argument("--topics", default=None, help="comma separated Wikipedia topics")
     ap.add_argument("--url", action="append", default=[], help="URL to fetch (repeatable)")
     ap.add_argument("--lang", default="en", help="Wikipedia language (en, bn, ...)")
     ap.add_argument("--retrain", type=int, default=0, metavar="STEPS",
@@ -106,17 +121,24 @@ def main():
 
     chunks = []
     label = []
-    if args.topic:
-        print(f"researching topic: {args.topic} ({args.lang}) ...")
-        chunks += wiki_topic(args.topic, args.lang)
-        label.append(args.topic)
+    topics = list(args.topic)
+    if args.topics:
+        topics += [t.strip() for t in args.topics.split(",") if t.strip()]
+    for topic in topics:
+        print(f"researching topic: {topic} ({args.lang}) ...")
+        try:
+            chunks += wiki_topic(topic, args.lang)
+        except Exception as e:
+            print(f"  skipped ({e})")
+            continue
+        label.append(slugify(topic))
     for url in args.url:
         print(f"fetching: {url} ...")
         chunks.append(clean_text(fetch_url(url)))
         label.append(slugify(url))
 
     if not chunks:
-        ap.error("nothing to research: pass --topic and/or --url")
+        ap.error("nothing to research: pass --topic/--topics and/or --url")
 
     path, n_chars = save_chunks(chunks, "-".join(label))
     print(f"saved {n_chars:,} chars from {len(chunks)} source(s) -> {path}")

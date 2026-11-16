@@ -30,6 +30,7 @@ def main():
     ap.add_argument("--eval-every", type=int, default=200)
     ap.add_argument("--eval-iters", type=int, default=20)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--resume", default=None, metavar="CKPT", help="continue training from a checkpoint")
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
@@ -65,6 +66,21 @@ def main():
         dropout=args.dropout,
     )
     model = OctoModel(cfg).to(device)
+    if args.resume:
+        ckpt = torch.load(args.resume, map_location=device)
+        saved_cfg = ckpt.get("config", {})
+        for key in ("block_size", "n_layer", "n_head", "n_embd"):
+            if key in saved_cfg and saved_cfg[key] != getattr(cfg, key):
+                setattr(cfg, key, saved_cfg[key])
+        model = OctoModel(cfg).to(device)
+        state = ckpt["model_state"]
+        model_sd = model.state_dict()
+        compatible = {k: v for k, v in state.items()
+                      if k in model_sd and model_sd[k].shape == v.shape}
+        skipped = set(state) - set(compatible)
+        if skipped:
+            print(f"resumed {len(compatible)}/{len(state)} tensors (shape changed: {sorted(skipped)})")
+        model.load_state_dict(compatible, strict=False)
     print(f"Octo | device={device} vocab={len(tokenizer)} params={model.num_params():,}")
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
