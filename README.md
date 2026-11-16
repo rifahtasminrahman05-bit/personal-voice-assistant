@@ -22,6 +22,18 @@ python main.py --voice      # microphone + STT
 python main.py --diag       # system + self diagnostic
 python train_model.py --stats
 python train_model.py --tune
+
+## Octo (built-in small LLM)
+
+Offline GPT-style Transformer LLM written from scratch (PyTorch). Train it on any text file:
+
+```bash
+python -m octo.train --corpus data/octo/corpus.txt --steps 2000
+python -m octo.chat --checkpoint octo_checkpoints/octo.pt --prompt "hello" --tokens 200
+python -m octo.chat --checkpoint octo_checkpoints/octo.pt   # interactive chat
+```
+
+Bangla text is supported. Checkpoints go to `octo_checkpoints/` (gitignored).
 ```
 
 Wake word (if enabled): `hey_mycroft` model / say **hey brain** in software list.

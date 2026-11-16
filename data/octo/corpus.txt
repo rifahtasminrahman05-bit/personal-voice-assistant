@@ -1,0 +1,10 @@
+Octo is a small language model that lives inside this assistant.
+It reads text one character at a time and learns what comes next.
+hello world, octo says hi to everyone who trains it.
+the brain of the assistant can answer, remember, and now also imagine.
+train octo on any text file and it will learn that language too.
+bangla text is supported: অক্টো একটি ছোট ভাষা মডেল, যা অফলাইনে চলে।
+সে প্রতিদিন নতুন কথা শেখে এবং ধীরে ধীরে বড় হয়।
+weather is nice today, the assistant can check the news and the clock.
+octo runs fully offline, no cloud and no paid api is required.
+small models are slow to learn but they are honest and simple.
