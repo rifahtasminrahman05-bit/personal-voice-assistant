@@ -25,15 +25,26 @@ python train_model.py --tune
 
 ## Octo (built-in small LLM)
 
-Offline GPT-style Transformer LLM written from scratch (PyTorch). Train it on any text file:
+Offline GPT-style Transformer LLM written from scratch (PyTorch), focused on coding and
+cybersecurity research (defensive / CTF style). Train it on any text file or directory:
 
 ```bash
-python -m octo.train --corpus data/octo/corpus.txt --steps 2000
+python -m octo.train --corpus data/octo --steps 2000
 python -m octo.chat --checkpoint octo_checkpoints/octo.pt --prompt "hello" --tokens 200
 python -m octo.chat --checkpoint octo_checkpoints/octo.pt   # interactive chat
 ```
 
-Bangla text is supported. Checkpoints go to `octo_checkpoints/` (gitignored).
+Research mode — collect fresh text from Wikipedia or any URL, then learn it:
+
+```bash
+python -m octo.research --topic "sql injection prevention" --lang en
+python -m octo.research --url https://docs.python.org/3/tutorial/index.html
+python -m octo.research --topic "firewall" --retrain 1000   # collect + retrain
+```
+
+Bangla text is supported. Research data lands in `data/octo/research/` and checkpoints in
+`octo_checkpoints/` (both gitignored). For ethics: Octo is a learning and defensive-research
+tool, not an attack tool — corpus content stays conceptual (CTF, OWASP, forensics).
 ```
 
 Wake word (if enabled): `hey_mycroft` model / say **hey brain** in software list.

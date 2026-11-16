@@ -12,6 +12,7 @@ data/screenshots/
 data/music/
 models/
 octo_checkpoints/
+data/octo/research/
 *.zip
 .env
 *.key

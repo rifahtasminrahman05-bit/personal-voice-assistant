@@ -5,6 +5,7 @@ Usage:
     python -m octo.train --corpus data/octo/corpus.txt --steps 2000
 """
 import argparse
+import glob
 import os
 
 import torch
@@ -16,14 +17,14 @@ from .tokenizer import CharTokenizer
 
 def main():
     ap = argparse.ArgumentParser(description="Train Octo, a small offline LLM.")
-    ap.add_argument("--corpus", default="data/octo/corpus.txt")
+    ap.add_argument("--corpus", default="data/octo", help="text file or directory of .txt files")
     ap.add_argument("--out", default="octo_checkpoints")
     ap.add_argument("--steps", type=int, default=2000)
     ap.add_argument("--batch-size", type=int, default=32)
-    ap.add_argument("--block-size", type=int, default=128)
-    ap.add_argument("--n-layer", type=int, default=4)
-    ap.add_argument("--n-head", type=int, default=4)
-    ap.add_argument("--n-embd", type=int, default=128)
+    ap.add_argument("--block-size", type=int, default=192)
+    ap.add_argument("--n-layer", type=int, default=6)
+    ap.add_argument("--n-head", type=int, default=6)
+    ap.add_argument("--n-embd", type=int, default=192)
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--dropout", type=float, default=0.1)
     ap.add_argument("--eval-every", type=int, default=200)
@@ -34,8 +35,19 @@ def main():
     torch.manual_seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    with open(args.corpus, "r", encoding="utf-8") as f:
-        text = f.read()
+    if os.path.isdir(args.corpus):
+        paths = sorted(glob.glob(os.path.join(args.corpus, "**", "*.txt"), recursive=True))
+        if not paths:
+            raise SystemExit(f"no .txt files found in {args.corpus}")
+        texts = []
+        for p in paths:
+            with open(p, "r", encoding="utf-8") as f:
+                texts.append(f.read())
+            print(f"corpus: {p}")
+        text = "\n".join(texts)
+    else:
+        with open(args.corpus, "r", encoding="utf-8") as f:
+            text = f.read()
     if len(text) < args.block_size + 2:
         raise SystemExit(f"corpus too small ({len(text)} chars) for block_size {args.block_size}")
 
