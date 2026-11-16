@@ -16,28 +16,30 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 NAME = "OctoDesktop"
 
 
+def _add_data(args, src):
+    if os.path.exists(src):
+        sep = ";" if platform.system() == "Windows" else ":"
+        args.extend(["--add-data", src + sep + src])
+
+
 def main():
     try:
         import PyInstaller
     except ImportError:
         sys.exit("PyInstaller missing: pip install pyinstaller")
 
-    sep = ";" if platform.system() == "Windows" else ":"
     args = [
         sys.executable, "-m", "PyInstaller",
         "--name", NAME,
         "--noconfirm",
         "--windowed",
-        "--add-data", os.path.join("data", "octo") + sep + "data/octo",
-        "--add-data", os.path.join("core") + sep + "core",
-        "--add-data", os.path.join("speech") + sep + "speech",
         "--hidden-import", "octo_core.desktop",
         "--collect-all", "octo",
         "--collect-all", "octo_core",
         os.path.join("octo_desktop.py"),
     ]
-    if platform.system() == "Darwin":
-        args.insert(1, "--windowed")
+    for src in ("data/octo", "core", "speech"):
+        _add_data(args, src)
     print(" ".join(args))
     result = subprocess.run(args, cwd=HERE)
     if result.returncode != 0:
