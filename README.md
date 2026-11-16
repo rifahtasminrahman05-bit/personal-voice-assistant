@@ -94,6 +94,26 @@ python -m octo.summarize --file data/octo/research/agi-firewall.txt --sentences 
 python -m octo.summarize --query "sql injection" --sentences 3
 ```
 
+Chat memory — the interactive chat remembers the last N exchanges as context:
+
+```bash
+python -m octo.chat --checkpoint octo_checkpoints/octo.pt --memory 3   # default
+python -m octo.chat --checkpoint octo_checkpoints/octo.pt --memory 0   # stateless
+```
+
+int8 quantization — ~4x smaller Linear weights for faster CPU inference:
+
+```bash
+python -m octo.quantize --checkpoint octo_checkpoints/octo-best.pt
+python -m octo.chat --checkpoint octo_checkpoints/octo-int8.pt
+```
+
+Tests (23 unit tests: tokenizers, model, RAG, NumPy net, AGI tools, summarizer, quantize):
+
+```bash
+python -m pytest tests/ -q
+```
+
 Bangla text is supported. Research data lands in `data/octo/research/` and checkpoints in
 `octo_checkpoints/` (both gitignored). For ethics: Octo is a learning and defensive-research
 tool, not an attack tool — corpus content stays conceptual (CTF, OWASP, forensics).
