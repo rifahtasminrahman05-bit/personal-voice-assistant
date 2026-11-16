@@ -202,9 +202,33 @@ Self-improvement is deliberately conservative: proposals are written to
 content, tested in an isolated subprocess, and applied only after explicit
 human approval.
 
-Tests (59 unit tests in `tests/test_octo_core.py`: cognitive, security,
+## Octo Desktop (Desktop Application)
+
+`octo_desktop.py` — Tkinter-ভিত্তিক ডেস্কটপ অ্যাপ্লিকেশন: Octo Core-এর সব লেয়ার
+একটি ট্যাবড কন্ট্রোল সেন্টারে। দীর্ঘ কাজ ব্যাকগ্রাউন্ড থ্রেডে চলে, ফলাফল queue-র
+মাধ্যমে UI-তে আসে — UI কখনো ফ্রিজ করে না।
+
+```bash
+python octo_desktop.py
+```
+
+ট্যাবসমূহ:
+
+| ট্যাব | কাজ |
+| --- | --- |
+| 💬 Chat | RAG-grounded Octo LLM চ্যাট, prompt-injection ব্লকিং সহ |
+| 🤖 Agent | লক্ষ্য দিন → strategy + task decomposition + agent routing + verification + reflection |
+| 🧠 Memory | knowledge graph-এ fact যোগ, hybrid recall, episodic timeline |
+| 🛡 Security | injection checker, audit log viewer |
+| 📊 Benchmarks | math + grounding benchmark suite |
+| ⚙ Status | device, checkpoint, model backend, facts/skills/audit সারাংশ |
+
+সব লজিক `OctoSession` ক্লাসে (display-independent) — Tk ছাড়াই টেস্টেবল।
+GUI নির্ভরতা: Python-এর built-in Tkinter (Linux-এ `sudo apt install python3-tk`)।
+
+Tests (69 unit tests in `tests/test_octo_core.py`: cognitive, security,
 memory, OctoV2 model, agents, learning, evaluation, infrastructure,
-multimodal, main pipeline):
+multimodal, main pipeline, desktop session/app):
 
 ```bash
 python -m pytest tests/ -q
