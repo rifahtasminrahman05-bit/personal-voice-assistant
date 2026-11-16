@@ -44,11 +44,20 @@ class PersonalBrain:
             pass
         return complete(model, tokenizer, prompt, 200, 0.8, 40, device).strip()
 
+    def run_agi(self, goal):
+        from octo.agi import run_agent
+        trace = run_agent(goal, max_steps=6, verbose=False)
+        lines = [f"[{name}] {result[:150]}" for name, result in trace]
+        return "AGI রিপোর্ট:\n" + "\n".join(lines)
+
     def process(self, text):
         low = text.lower().strip()
         if low in ("সাহায্য", "help"):
-            return ("কমান্ড: অক্টো <প্রশ্ন> — Octo LLM উত্তর | মনে রাখো <বিষয়> — নোট | "
-                    "সেলফ রিপোর্ট | bye")
+            return ("কমান্ড: অক্টো <প্রশ্ন> — Octo LLM উত্তর | agi <লক্ষ্য> — এজেন্ট মোড | "
+                    "মনে রাখো <বিষয়> — নোট | সেলফ রিপোর্ট | bye")
+        if low.startswith("agi ") or low.startswith("এজিআই "):
+            goal = text.strip().split(" ", 1)[1]
+            return self.run_agi(goal)
         if low.startswith("অক্টো") or low.startswith("octo"):
             parts = text.strip().split(" ", 1)
             prompt = parts[1] if len(parts) > 1 else "hello"

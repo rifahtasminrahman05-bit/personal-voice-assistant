@@ -43,6 +43,8 @@ class RagIndex:
         chunks = []
         for root in roots:
             for path in sorted(glob.glob(os.path.join(root, "**", "*.txt"), recursive=True)):
+                if os.path.basename(path) == "agi_memory.txt":
+                    continue
                 with open(path, "r", encoding="utf-8") as f:
                     chunks += list(_chunks(f.read()))
         chunks = chunks[:max_chunks]

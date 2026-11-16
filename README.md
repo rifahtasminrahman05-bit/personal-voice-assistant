@@ -56,6 +56,16 @@ Resume training from a checkpoint (vocab changes are handled):
 python -m octo.train --corpus data/octo --steps 5000 --resume octo_checkpoints/octo.pt
 ```
 
+AGI agent mode — goal-driven tool loop (research, RAG search, unit conversion,
+safe calculator, persistent memory, Octo answers):
+
+```bash
+python -m octo.agi --goal "how many seconds in 3 days"
+python -m octo.agi --goal "research sql injection and answer how to prevent it"
+```
+
+In the assistant CLI: `agi <লক্ষ্য>`. Agent notes persist in `data/octo/agi_memory.txt`.
+
 Bangla text is supported. Research data lands in `data/octo/research/` and checkpoints in
 `octo_checkpoints/` (both gitignored). For ethics: Octo is a learning and defensive-research
 tool, not an attack tool — corpus content stays conceptual (CTF, OWASP, forensics).
