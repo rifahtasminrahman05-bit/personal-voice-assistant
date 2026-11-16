@@ -311,7 +311,33 @@ Desktop-এ নতুন ট্যাব: 🏋 Train (OctoV2), ⚙ Settings (tem
 `settings.json`-এ persist), benchmark trend, red-team button, memory export/import,
 এবং sensitive কাজে human-approval dialog।
 
-Tests (144 unit tests in `tests/test_octo_core.py`: cognitive, security,
+## Next-Generation Intelligence (15 features)
+
+`octo_core/`-এ ৮টি নতুন মডিউল — ৮ ক্যাটাগরিতে ১৫টি উন্নত ফিচার:
+
+| # | Feature | Module / API |
+|---|---------|--------------|
+| 1 | Predictive Intelligence Engine | `octo_core.predictive.PredictiveEngine.forecast()` — লিনিয়ার-রিগ্রেশন ট্রেন্ড + residual confidence |
+| 2 | Future State Simulator | `FutureStateSimulator.simulate()` — মন্টে-কার্লো সিদ্ধান্ত শাখা, ranked futures, p10/p90, risk_of_loss |
+| 3 | Scientific Hypothesis Engine | `octo_core.scientific.ScientificHypothesisEngine` — correlation থেকে অনুমান + held-out যাচাই |
+| 4 | Autonomous Discovery Laboratory | `DiscoveryLab.run_cycle()` — নিয়ন্ত্রিত পরীক্ষা লুপ (sandboxed runner সহ) + logbook |
+| 5 | Digital Twin Engine | `octo_core.digital.DigitalTwin` — sync / drift / project (dynamics function) |
+| 6 | Embodied Intelligence Interface | `EmbodiedInterface` + `LoopbackRobot` — register/connect/act_and_observe/sense_all |
+| 7 | Knowledge Gap Detector | `octo_core.knowledge.KnowledgeGapDetector` — sparse/contradiction/missing relations + research questions |
+| 8 | Ontology Learning Engine | `OntologyLearner` — is-a / part-of / used-for extraction, hierarchy, summary |
+| 9 | Codebase Understanding Engine | `octo_core.software.CodebaseUnderstanding` — AST scan, dependency graph, entry candidates |
+| 10 | Automated Test Generation | `TestGenerator` — public functions + edge cases (None/empty/zero/negative/large) → `tests/generated/` |
+| 11 | Attack Surface Intelligence | `octo_core.cybersec.AttackSurfaceAnalyzer` — dangerous-call scan, risk score, verdict (defensive) |
+| 12 | Incident Timeline Reconstruction | `IncidentTimeline.reconstruct()` — log → recon→compromise→escalation→exfiltration→cleanup |
+| 13 | Test-Time Compute Scaling | `octo_core.modelint.TestTimeCompute` — difficulty routing + self-consistency voting |
+| 14 | Ensemble Model Intelligence | `Ensemble` — multi-model consensus, agreement, weighted pick |
+| 15 | Cognitive Architecture Simulator | `octo_core.metacog.CognitiveArchitectureSimulator` — simulate/compare/optimize capability vectors |
+
+Desktop `OctoSession`-এ convenience API: `predict_trend()`, `simulate_future()`,
+`knowledge_gaps()`, `attack_surface()`; `capability_manifest()` এখন ১৫টি নতুন
+ফিচারও রিপোর্ট করে (Status ট্যাব)।
+
+Tests (184 tests across `tests/`: cognitive, security,
 memory, OctoV2 model + speculative, agents + parallel, learning, evaluation,
 infrastructure, multimodal, main pipeline, desktop session/app,
 cross-platform, train_v2, sandbox code, jobs, bench history, settings,

@@ -180,6 +180,34 @@ class OctoSession:
     def strategy_for(self, goal):
         return DecisionEngine().choose(goal)
 
+    def predict_trend(self, horizon=3):
+        """Predictive Intelligence Engine: forecast the benchmark trend."""
+        from .predictive import PredictiveEngine
+        return PredictiveEngine().predict_outcome(self.history.entries(),
+                                                  horizon=horizon)
+
+    def simulate_future(self, decisions, steps=3):
+        """Future State Simulator: rank decision branches into futures."""
+        from .predictive import FutureStateSimulator
+        return FutureStateSimulator().simulate({"roots": list(self.roots)},
+                                               decisions, steps=steps)
+
+    def knowledge_gaps(self):
+        """Knowledge Gap Detector: what the graph does not know yet."""
+        from .knowledge import KnowledgeGapDetector
+        report = KnowledgeGapDetector(self.memory.graph).gaps()
+        report["questions"] = KnowledgeGapDetector(self.memory.graph).questions()
+        return report
+
+    def attack_surface(self, root="."):
+        """Attack Surface Intelligence: scan an authorized code tree."""
+        from .cybersec import AttackSurfaceAnalyzer
+        report = AttackSurfaceAnalyzer(root).scan()
+        self.audit.log("attack_surface_scan", "desktop",
+                       f"root={root} risk={report['risk_score']} "
+                       f"({report['verdict']})")
+        return report
+
     def voice_listen(self):
         """STT via the shared SpeechEngine; graceful text when unavailable."""
         try:

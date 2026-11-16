@@ -136,7 +136,15 @@ def capability_manifest(session=None):
                      ("octo_core.researchx", "multi-source research cross-check"),
                      ("octo_core.sandbox_code", "sandboxed code execution"),
                      ("octo_core.jobs", "scheduled recurring tasks"),
-                     ("octo_core.train_v2", "OctoV2 training pipeline")):
+                     ("octo_core.train_v2", "OctoV2 training pipeline"),
+                     ("octo_core.predictive", "trend forecasting + future-state simulation"),
+                     ("octo_core.scientific", "hypothesis engine + discovery lab"),
+                     ("octo_core.digital", "digital twin + embodied interface"),
+                     ("octo_core.knowledge", "knowledge-gap detection + ontology learning"),
+                     ("octo_core.software", "codebase understanding + test generation"),
+                     ("octo_core.cybersec", "attack-surface analysis + incident timeline"),
+                     ("octo_core.modelint", "test-time compute scaling + ensembles"),
+                     ("octo_core.metacog", "cognitive architecture simulator")):
         try:
             __import__(mod)
             caps["capabilities"].append({"id": mod.split(".")[-1], "detail": cap})
