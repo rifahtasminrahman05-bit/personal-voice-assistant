@@ -68,6 +68,16 @@ def tool_research(topic):
     return f"collected {n:,} chars about '{topic}' -> {path}"
 
 
+def tool_websearch(query):
+    from .search import search_and_read
+    body, sources = search_and_read(query, fetch=2)
+    if not body:
+        return f"web search returned nothing for: {query}"
+    for src in sources:
+        take_note(f"web source: {src}")
+    return f"read {len(sources)} page(s), {len(body):,} chars. first source: {sources[0] if sources else '-'}"
+
+
 def tool_answer(prompt, steps=120):
     import torch
     from .chat import load_model, complete
@@ -95,6 +105,10 @@ def plan(goal):
         goal, re.I)
     if conv:
         steps.append(("convert", conv.group(0)))
+    if re.search(r"web search|websearch|ইন্টারনেট|ওয়েব সার্চ|google", goal.lower()):
+        topic = re.sub(r".*(web ?search|ইন্টারনেট|ওয়েব সার্চ|google)\s*(for|about|করো)?\s*", "", goal,
+                       flags=re.I, count=1).strip(" .?!") or goal
+        steps.append(("websearch", topic))
     if re.search(r"research|শেখো|রিসার্চ|study|learn about", goal.lower()):
         topic = re.sub(r".*?(research|শেখো|রিসার্চ|study|learn about)\s*(about|on)?\s*", "", goal,
                        flags=re.I, count=1).strip(" .?!")
@@ -127,6 +141,7 @@ def tool_convert(arg):
 TOOLS = {
     "calc": lambda arg: f"{arg} = {safe_calc(arg)}",
     "convert": tool_convert,
+    "websearch": tool_websearch,
     "research": tool_research,
     "search": tool_search_corpus,
     "answer": tool_answer,

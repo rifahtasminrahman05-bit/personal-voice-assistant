@@ -108,7 +108,28 @@ python -m octo.quantize --checkpoint octo_checkpoints/octo-best.pt
 python -m octo.chat --checkpoint octo_checkpoints/octo-int8.pt
 ```
 
-Tests (23 unit tests: tokenizers, model, RAG, NumPy net, AGI tools, summarizer, quantize):
+Web search (Bing) — beyond Wikipedia, feeds AGI and research:
+
+```bash
+python -m octo.search --query "sql injection prevention owasp" --fetch 1
+python -m octo.agi --goal "web search for sql injection prevention"
+```
+
+Octo-Pro — LoRA fine-tune of a pretrained LLM (Qwen2.5-0.5B) on your own Q&A data.
+GPU recommended; needs `pip install transformers peft datasets accelerate`:
+
+```bash
+python -m octo.pro --train --data data/octo/pro_train.jsonl
+python -m octo.pro --prompt "How do I prevent SQL injection?"
+```
+
+GUI chat (Tkinter):
+
+```bash
+python gui.py
+```
+
+Tests (25 unit tests: tokenizers, model, RAG, NumPy net, AGI tools, search decode, summarizer, quantize):
 
 ```bash
 python -m pytest tests/ -q

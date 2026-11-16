@@ -163,6 +163,20 @@ class TestAgiTools:
         assert "unknown units" in tool_convert("unicorns in 3 days")
 
 
+class TestSearch:
+    def test_decode_bing_url(self):
+        import base64
+        from octo.search import _decode_bing_url
+        target = "https://owasp.org/www-community/attacks/SQL_Injection"
+        b64 = base64.urlsafe_b64encode(target.encode()).decode().rstrip("=")
+        href = f"https://www.bing.com/ck/a?!&amp;&amp;u=a1{b64}&ntb=1"
+        assert _decode_bing_url(href) == target
+
+    def test_decode_plain_url(self):
+        from octo.search import _decode_bing_url
+        assert _decode_bing_url("https://example.com/page") == "https://example.com/page"
+
+
 class TestSummarize:
     def test_summary_is_subset(self):
         summary = summarize(SAMPLE * 5, n=2)
