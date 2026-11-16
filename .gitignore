@@ -3,6 +3,7 @@ __pycache__/
 *.pyo
 data/*.db
 data/*.db-journal
+data/.crypto_verify
 data/conversation.log
 data/memory.json
 data/backup_export.json

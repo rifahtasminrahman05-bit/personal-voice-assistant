@@ -64,7 +64,10 @@ class PersonalBrain:
             return self.ask_octo(prompt)
         if low.startswith("মনে রাখো"):
             note = text.strip()[len("মনে রাখো"):].strip()
-            return f"মনে রাখলাম: {note}" if note else "কী মনে রাখব?"
+            if not note:
+                return "কী মনে রাখব?"
+            from storage.db import OfflineStorage
+            return OfflineStorage().remember(note)
         if low in ("সেলফ রিপোর্ট", "self report"):
             octo_ok = self._load_octo() is not None
             return f"Assistant: {config.ASSISTANT_NAME} v{config.APP_VERSION} | Octo: {'ready' if octo_ok else 'not trained'}"

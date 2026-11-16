@@ -129,11 +129,26 @@ GUI chat (Tkinter):
 python gui.py
 ```
 
-Tests (25 unit tests: tokenizers, model, RAG, NumPy net, AGI tools, search decode, summarizer, quantize):
+HTTP API — chat with Octo from any app (loopback only, stdlib):
+
+```bash
+python -m octo.server                # http://127.0.0.1:8600 (web chat at /)
+curl -s http://127.0.0.1:8600/health
+curl -s -X POST http://127.0.0.1:8600/chat -d '{"prompt": "hello", "tokens": 100}'
+```
+
+Voice mode — STT via Vosk, TTS via pyttsx3, graceful text-mode fallback
+(`speech/engine.py`). Notes persist in SQLite (`storage/db.py`), optional
+Fernet encryption via master password (`storage/crypto.py`).
+
+Tests (31 unit tests: tokenizers, model, RAG, NumPy net, AGI tools, search
+decode, summarizer, quantize, server, crypto, speech fallback):
 
 ```bash
 python -m pytest tests/ -q
 ```
+
+CI runs the test suite on every push/PR (`.github/workflows/ci.yml`).
 
 Bangla text is supported. Research data lands in `data/octo/research/` and checkpoints in
 `octo_checkpoints/` (both gitignored). For ethics: Octo is a learning and defensive-research
