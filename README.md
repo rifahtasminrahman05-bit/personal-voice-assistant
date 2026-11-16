@@ -66,6 +66,19 @@ python -m octo.agi --goal "research sql injection and answer how to prevent it"
 
 In the assistant CLI: `agi <লক্ষ্য>`. Agent notes persist in `data/octo/agi_memory.txt`.
 
+Deep learning extras:
+
+```bash
+python -m octo.train --corpus data/octo --warmup 100 --grad-accum 2 --bf16   # warmup + accumulation + bf16
+python -m octo.embeddings --query "how to prevent sql injection"             # semantic search (Octo embeddings)
+python -m octo.classifier --train --data data/octo/intents.json              # intent head (transfer learning)
+python -m octo.classifier --predict "remember my password"
+```
+
+Training saves `octo-best.pt` (lowest val loss) alongside `octo.pt`. The intent head also
+routes unmatched assistant inputs (e.g. "remember this thing" -> note). Embedding and
+classifier quality scale with how long Octo has been trained.
+
 Bangla text is supported. Research data lands in `data/octo/research/` and checkpoints in
 `octo_checkpoints/` (both gitignored). For ethics: Octo is a learning and defensive-research
 tool, not an attack tool — corpus content stays conceptual (CTF, OWASP, forensics).

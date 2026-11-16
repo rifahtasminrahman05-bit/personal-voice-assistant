@@ -68,4 +68,18 @@ class PersonalBrain:
         if low in ("সেলফ রিপোর্ট", "self report"):
             octo_ok = self._load_octo() is not None
             return f"Assistant: {config.ASSISTANT_NAME} v{config.APP_VERSION} | Octo: {'ready' if octo_ok else 'not trained'}"
+        intent = self._guess_intent(text)
+        if intent == "note":
+            return self.process("মনে রাখো " + text)
+        if intent == "llm_agent":
+            return self.ask_octo(text)
         return ("বুঝতে পারিনি। 'সাহায্য' লিখুন, অথবা 'অক্টো <প্রশ্ন>' দিয়ে built-in LLM-কে জিজ্ঞেস করুন।")
+
+    def _guess_intent(self, text):
+        try:
+            from octo.classifier import IntentClassifier
+            if not hasattr(self, "_clf"):
+                self._clf = IntentClassifier.load()
+            return self._clf.predict(text)[0][0]
+        except Exception:
+            return None

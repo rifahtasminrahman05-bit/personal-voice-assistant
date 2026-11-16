@@ -6,6 +6,7 @@ Usage:
 """
 import argparse
 import glob
+import math
 import os
 
 import torch
@@ -33,6 +34,9 @@ def main():
     ap.add_argument("--resume", default=None, metavar="CKPT", help="continue training from a checkpoint")
     ap.add_argument("--tokenizer", choices=("char", "bpe"), default="char")
     ap.add_argument("--vocab-size", type=int, default=512, help="BPE vocab size")
+    ap.add_argument("--warmup", type=int, default=100, help="LR warmup steps")
+    ap.add_argument("--grad-accum", type=int, default=1, help="gradient accumulation steps")
+    ap.add_argument("--bf16", action="store_true", help="bfloat16 autocast (CPU/GPU where supported)")
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
@@ -90,7 +94,16 @@ def main():
     print(f"Octo | device={device} vocab={len(tokenizer)} params={model.num_params():,}")
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
-    sched = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.steps)
+
+    def lr_lambda(step):
+        if step < args.warmup:
+            return step / max(1, args.warmup)
+        progress = (step - args.warmup) / max(1, args.steps - args.warmup)
+        return 0.5 * (1.0 + math.cos(math.pi * min(1.0, progress)))
+
+    sched = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+    autocast_ctx = (torch.autocast(device_type=device, dtype=torch.bfloat16)
+                    if args.bf16 else torch.autocast(device_type=device, enabled=False))
 
     def eval_loss(split_data):
         model.eval()
@@ -104,18 +117,26 @@ def main():
         return sum(losses) / len(losses)
 
     model.train()
+    best_val = float("inf")
+    optimizer.zero_grad(set_to_none=True)
     for step in range(1, args.steps + 1):
         x, y = get_batch(train_data, cfg.block_size, args.batch_size, device)
-        _, loss = model(x, y)
-        optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        optimizer.step()
+        with autocast_ctx:
+            _, loss = model(x, y)
+            (loss / args.grad_accum).backward()
+        if step % args.grad_accum == 0:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
         sched.step()
         if step % args.eval_every == 0 or step == args.steps:
             val_src = val_data if len(val_data) > cfg.block_size + 1 else train_data
             val = eval_loss(val_src)
             print(f"step {step:5d} | train loss {loss.item():.4f} | val loss {val:.4f}")
+            if val < best_val:
+                best_val = val
+                torch.save({"model_state": model.state_dict(), "config": cfg.__dict__},
+                           os.path.join(args.out, "octo-best.pt"))
 
     os.makedirs(args.out, exist_ok=True)
     ckpt_path = os.path.join(args.out, "octo.pt")

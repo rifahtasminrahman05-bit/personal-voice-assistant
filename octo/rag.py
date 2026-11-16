@@ -31,6 +31,12 @@ def _tokens(text):
     return re.findall(r"[\w'>=-]+", text.lower())
 
 
+def _gather(root):
+    for path in sorted(glob.glob(os.path.join(root, "**", "*.txt"), recursive=True)):
+        if os.path.basename(path) != "agi_memory.txt":
+            yield path
+
+
 class RagIndex:
     def __init__(self, chunks, matrix, idf, vocab):
         self.chunks = chunks
@@ -42,9 +48,7 @@ class RagIndex:
     def build(cls, roots=("data/octo",), max_chunks=4000):
         chunks = []
         for root in roots:
-            for path in sorted(glob.glob(os.path.join(root, "**", "*.txt"), recursive=True)):
-                if os.path.basename(path) == "agi_memory.txt":
-                    continue
+            for path in _gather(root):
                 with open(path, "r", encoding="utf-8") as f:
                     chunks += list(_chunks(f.read()))
         chunks = chunks[:max_chunks]
