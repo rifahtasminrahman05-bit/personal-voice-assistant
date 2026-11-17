@@ -461,7 +461,8 @@ class TestDesktopApp:
         from octo_core.desktop import OctoDesktopApp
         app = OctoDesktopApp(root)
         titles = [app.notebook.tab(t, "text") for t in app.notebook.tabs()]
-        assert len(titles) == 6
+        assert len(titles) == 9
+        assert any("Lab" in t for t in titles)
         root.destroy()
 
 

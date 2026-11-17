@@ -375,3 +375,60 @@ class TestMetaCognitive:
         assert set(best) == {"attention", "memory", "tools", "reflection"}
         assert best["tools"] >= 0.5
         assert out["score"] >= 0.0
+
+
+class TestLabSession:
+    def session(self, tmp_path):
+        corpus = tmp_path / "corpus"
+        corpus.mkdir(exist_ok=True)
+        (corpus / "notes.txt").write_text(
+            "octo is a modular intelligence platform with predictive, scientific "
+            "and cybersecurity capabilities built in.", encoding="utf-8")
+        from octo_core.desktop import OctoSession
+        return OctoSession(roots=(str(corpus),),
+                           checkpoint="/nonexistent/octo.pt")
+
+    def test_predict_trend_empty_history(self, tmp_path):
+        s = self.session(tmp_path)
+        from octo_core.benchhistory import BenchmarkHistory
+        s.history = BenchmarkHistory(path=str(tmp_path / "bh.jsonl"))
+        out = s.predict_trend()
+        assert out["confidence"] == 0.0
+        assert out["direction"] == "unknown"
+
+    def test_predict_trend_uses_recorded_history(self, tmp_path):
+        s = self.session(tmp_path)
+        from octo_core.benchhistory import BenchmarkHistory
+        s.history = BenchmarkHistory(path=str(tmp_path / "bh.jsonl"))
+        for score in (0.4, 0.5, 0.6):
+            s.history.record({"math": {"score": score}})
+        out = s.predict_trend()
+        assert out["direction"] == "rising"
+
+    def test_simulate_future(self, tmp_path):
+        out = self.session(tmp_path).simulate_future(
+            [{"name": "safe", "cost": 0.01, "gain": 0.5, "risk": 0.05},
+             {"name": "wild", "cost": 0.5, "gain": 0.5, "risk": 0.9}])
+        assert out["recommended"] == "safe"
+
+    def test_knowledge_gaps_and_questions(self, tmp_path):
+        s = self.session(tmp_path)
+        s.memory.remember("octo", "is", "assistant")
+        report = s.knowledge_gaps()
+        assert report["total_facts"] >= 1
+        assert isinstance(report["questions"], list)
+
+    def test_attack_surface_audits(self, tmp_path):
+        s = self.session(tmp_path)
+        target = tmp_path / "scanme"
+        target.mkdir()
+        (target / "risky.py").write_text("eval(x)\n", encoding="utf-8")
+        report = s.attack_surface(str(target))
+        assert report["findings"]
+        assert s.audit.tail(1)[0]["event"] == "attack_surface_scan"
+
+    def test_optimize_architecture(self, tmp_path):
+        out = self.session(tmp_path).optimize_architecture()
+        assert set(out["best_architecture"]) == {"attention", "memory",
+                                                 "tools", "reflection"}
+        assert out["score"] >= 0.0

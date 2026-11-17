@@ -208,6 +208,16 @@ class OctoSession:
                        f"({report['verdict']})")
         return report
 
+    def optimize_architecture(self):
+        """Cognitive Architecture Simulator: grid-search best capability mix."""
+        from .metacog import CognitiveArchitectureSimulator
+        tasks = [
+            {"name": "chat", "needs": {"attention": 0.8, "memory": 0.4}},
+            {"name": "act", "needs": {"tools": 0.9, "reflection": 0.3}},
+            {"name": "research", "needs": {"memory": 0.6, "reflection": 0.5}},
+        ]
+        return CognitiveArchitectureSimulator().optimize(tasks)
+
     def voice_listen(self):
         """STT via the shared SpeechEngine; graceful text when unavailable."""
         try:
@@ -232,9 +242,9 @@ class OctoSession:
 class OctoDesktopApp:
     """Tkinter desktop application — tabbed control center for Octo Core.
 
-    Tabs: Chat · Agent · Memory · Security · Benchmarks · Train · Settings ·
-    Status. Long work runs in daemon threads; results flow back through a
-    queue; sensitive operations raise a human-approval dialog.
+    Tabs: Chat · Agent · Memory · Security · Benchmarks · Lab · Train ·
+    Settings · Status. Long work runs in daemon threads; results flow back
+    through a queue; sensitive operations raise a human-approval dialog.
     """
 
     def __init__(self, root, session=None):
@@ -261,6 +271,7 @@ class OctoDesktopApp:
         self._build_memory_tab()
         self._build_security_tab()
         self._build_bench_tab()
+        self._build_lab_tab()
         self._build_train_tab()
         self._build_settings_tab()
         self._build_status_tab()
@@ -377,6 +388,35 @@ class OctoDesktopApp:
         ttk.Button(row, text="Run + record", command=self.on_bench).pack(side=tk.LEFT, padx=4)
         ttk.Button(row, text="Show trend", command=self.on_trend).pack(side=tk.LEFT)
         self.bench_out = self._output_box(frame)
+
+    def _build_lab_tab(self):
+        tk, ttk = self.tk, self.ttk
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="🧪 Lab")
+        scan_row = ttk.Frame(frame)
+        scan_row.pack(fill=tk.X, padx=6, pady=(6, 2))
+        ttk.Label(scan_row, text="scan root:").pack(side=tk.LEFT)
+        self.lab_root = ttk.Entry(scan_row)
+        self.lab_root.insert(0, ".")
+        self.lab_root.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=4)
+        ttk.Button(scan_row, text="Attack surface",
+                   command=self.on_lab_attack_surface).pack(side=tk.LEFT)
+        quick_row = ttk.Frame(frame)
+        quick_row.pack(fill=tk.X, padx=6, pady=2)
+        ttk.Button(quick_row, text="Trend forecast",
+                   command=self.on_lab_trend).pack(side=tk.LEFT, padx=(0, 4))
+        ttk.Button(quick_row, text="Knowledge gaps",
+                   command=self.on_lab_gaps).pack(side=tk.LEFT, padx=4)
+        ttk.Button(quick_row, text="Optimize architecture",
+                   command=self.on_lab_optimize).pack(side=tk.LEFT)
+        future_row = ttk.Frame(frame)
+        future_row.pack(fill=tk.X, padx=6, pady=2)
+        self.lab_future = ttk.Entry(future_row)
+        self.lab_future.insert(0, "safe path, 0.5, 0.1, 0.1; bold path, 0.9, 0.6, 0.4")
+        self.lab_future.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
+        ttk.Button(future_row, text="Simulate futures",
+                   command=self.on_lab_future).pack(side=tk.LEFT)
+        self.lab_out = self._output_box(frame)
 
     def _build_train_tab(self):
         tk, ttk = self.tk, self.ttk
@@ -504,6 +544,72 @@ class OctoDesktopApp:
         for ts, value in trend["history"]:
             self._append(self.bench_out, f"{ts}  math={value}")
         self._append(self.bench_out, f"direction: {trend['direction']}")
+
+    def on_lab_attack_surface(self):
+        root = self.lab_root.get().strip() or "."
+        self._append(self.lab_out, f"attack-surface scan চলছে: {root} ...")
+        self._run_bg(self.session.attack_surface, root,
+                     on_done=self._lab_attack_done)
+
+    def _lab_attack_done(self, report):
+        self._append(self.lab_out,
+                     f"files={report['files_scanned']} risk={report['risk_score']} "
+                     f"({report['verdict']}) | high={report['counts'].get('high', 0)} "
+                     f"medium={report['counts'].get('medium', 0)} "
+                     f"low={report['counts'].get('low', 0)}")
+        for f in report["findings"][:10]:
+            self._append(self.lab_out,
+                         f"[{f['severity']}] {f['file']}:{f['line']} — {f['finding']}")
+        if len(report["findings"]) > 10:
+            self._append(self.lab_out,
+                         f"... আরও {len(report['findings']) - 10} টি finding")
+
+    def on_lab_trend(self):
+        out = self.session.predict_trend()
+        self._append(self.lab_out,
+                     f"forecast: {out['forecast']} | slope={out['slope']} "
+                     f"| direction={out['direction']} | confidence={out['confidence']}")
+
+    def on_lab_gaps(self):
+        report = self.session.knowledge_gaps()
+        self._append(self.lab_out,
+                     f"facts={report['total_facts']} coverage={report['coverage']} | "
+                     f"sparse={len(report['sparse'])} "
+                     f"conflicts={len(report['contradictions'])} "
+                     f"missing={len(report['missing_relations'])}")
+        for q in report["questions"]:
+            self._append(self.lab_out, f"? {q}")
+
+    def on_lab_optimize(self):
+        out = self.session.optimize_architecture()
+        arch = ", ".join(f"{k}={v}" for k, v in out["best_architecture"].items())
+        self._append(self.lab_out, f"best architecture: {arch} (score={out['score']})")
+
+    def on_lab_future(self):
+        decisions = []
+        for part in self.lab_future.get().split(";"):
+            bits = [b.strip() for b in part.split(",")]
+            if len(bits) != 4:
+                continue
+            try:
+                decisions.append({"name": bits[0], "gain": float(bits[1]),
+                                  "risk": float(bits[2]), "cost": float(bits[3])})
+            except ValueError:
+                continue
+        if not decisions:
+            self._append(self.lab_out,
+                         "ফরম্যাট: name, gain, risk, cost; name2, ...")
+            return
+        self._run_bg(self.session.simulate_future, decisions,
+                     on_done=self._lab_future_done)
+
+    def _lab_future_done(self, result):
+        for f in result["futures"]:
+            self._append(self.lab_out,
+                         f"{f['decision']}: EV={f['expected_value']} "
+                         f"p10={f['p10']} p90={f['p90']} "
+                         f"loss-risk={f['risk_of_loss']}")
+        self._append(self.lab_out, f"recommended: {result['recommended']}")
 
     def on_train(self):
         corpus = self.train_corpus.get().strip() or "data/octo"

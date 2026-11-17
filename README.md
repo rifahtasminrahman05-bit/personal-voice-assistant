@@ -219,8 +219,9 @@ python octo_desktop.py
 | 💬 Chat | RAG-grounded Octo LLM চ্যাট, prompt-injection ব্লকিং সহ |
 | 🤖 Agent | লক্ষ্য দিন → strategy + task decomposition + agent routing + verification + reflection |
 | 🧠 Memory | knowledge graph-এ fact যোগ, hybrid recall, episodic timeline |
-| 🛡 Security | injection checker, audit log viewer |
-| 📊 Benchmarks | math + grounding benchmark suite |
+| 🛡 Security | injection checker, audit log viewer, red-team |
+| 📊 Benchmarks | math + grounding benchmark suite, trend |
+| 🧪 Lab | attack-surface scan, trend forecast, knowledge gaps, future-state simulator, cognitive-architecture optimizer |
 | ⚙ Status | device, checkpoint, model backend, facts/skills/audit সারাংশ |
 
 সব লজিক `OctoSession` ক্লাসে (display-independent) — Tk ছাড়াই টেস্টেবল।
