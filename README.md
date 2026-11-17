@@ -334,11 +334,31 @@ Desktop-এ নতুন ট্যাব: 🏋 Train (OctoV2), ⚙ Settings (tem
 | 14 | Ensemble Model Intelligence | `Ensemble` — multi-model consensus, agreement, weighted pick |
 | 15 | Cognitive Architecture Simulator | `octo_core.metacog.CognitiveArchitectureSimulator` — simulate/compare/optimize capability vectors |
 
+## Advanced Intelligence Expansion (60 features)
+
+`octo_core/`-এ ১০টি নতুন মডিউল — ১০ ক্যাটাগরিতে ৬০টি ফিচার (প্রতিটি আলাদা ক্লাস,
+stdlib heuristic, সম্পূর্ণ টেস্টযোগ্য):
+
+| ক্যাটাগরি | মডিউল | ফিচার |
+|---|---|---|
+| 1. Advanced Cognitive Intelligence | `octo_core/cogx.py` | (1) Cognitive Load Manager, (2) Adaptive Reasoning Engine, (3) Causal Reasoning Engine, (4) Counterfactual Reasoning, (5) Metacognitive Controller, (6) Uncertainty Awareness Engine |
+| 2. Advanced Autonomous Agent | `octo_core/swarm.py` | (7) Multi-Agent Collaboration Network, (8) Agent Negotiation Engine, (9) Dynamic Agent Creation, (10) Agent Reputation System, (11) Autonomous Workflow Composer, (12) Long-Term Goal Manager |
+| 3. Advanced Memory & Knowledge | `octo_core/memx.py` | (13) Associative Memory Network, (14) Memory Consolidation Engine, (15) Memory Decay Manager, (16) Knowledge Evolution Tracker, (17) Semantic Knowledge Compression, (18) Cross-Domain Knowledge Transfer |
+| 4. Self-Learning & Model Evolution | `octo_core/evolvex.py` | (19) Continual Learning Engine, (20) Experience Replay System, (21) Adaptive Curriculum Generator, (22) Skill Acquisition Engine, (23) Model Adaptation Controller, (24) Self-Improvement Evaluation Loop (approval-gated) |
+| 5. Advanced Multimodal Intelligence | `octo_core/perception.py` | (25) Real-Time Scene Understanding, (26) Visual Object Tracking, (27) Spatial Reasoning Engine, (28) Gesture Recognition System, (29) Audio Scene Understanding, (30) Multimodal Context Fusion |
+| 6. Advanced Software Engineering | `octo_core/devx.py` | (31) Autonomous Debugging Engine, (32) Architecture Design Intelligence, (33) Code Optimization Engine, (34) Dependency Risk Analyzer, (35) Automated Documentation Engine, (36) Software Migration Intelligence |
+| 7. Advanced Cybersecurity Intelligence | `octo_core/secopsx.py` | (37) Threat Intelligence Correlation, (38) Security Posture Analyzer, (39) Configuration Risk Detector, (40) Vulnerability Prioritization Engine, (41) Zero-Trust Policy Intelligence, (42) Incident Response Planner, (43) Cloud Security Intelligence, (44) Supply Chain Security Analyzer |
+| 8. Advanced System Intelligence | `octo_core/sysint.py` | (45) Dynamic Resource Allocation, (46) Intelligent Task Scheduler, (47) Predictive Failure Detection, (48) Self-Healing Infrastructure (approval-gated), (49) Distributed Agent Execution, (50) Intelligent Cache Manager |
+| 9. Advanced Human-AI Interaction | `octo_core/humanai.py` | (51) Personalized Interaction Engine, (52) Intent Prediction System, (53) Context-Aware Dialogue Manager, (54) Explainable Decision Engine, (55) Collaborative Problem-Solving Engine, (56) Adaptive Teaching Engine |
+| 10. Experimental Frontier Intelligence | `octo_core/frontier.py` | (57) Cognitive Architecture Evolution Engine, (58) Artificial Society Simulator, (59) Emergent Behavior Analyzer, (60) Autonomous Research Planner |
+
+`capability_manifest()` এখন সবগুলো নতুন মডিউলও রিপোর্ট করে (Status ট্যাব)।
+
 Desktop `OctoSession`-এ convenience API: `predict_trend()`, `simulate_future()`,
-`knowledge_gaps()`, `attack_surface()`; `capability_manifest()` এখন ১৫টি নতুন
+`knowledge_gaps()`, `attack_surface()`, `optimize_architecture()`; `capability_manifest()` এখন ১৫টি নতুন
 ফিচারও রিপোর্ট করে (Status ট্যাব)।
 
-Tests (184 tests across `tests/`: cognitive, security,
+Tests (250 tests across `tests/`: cognitive, security,
 memory, OctoV2 model + speculative, agents + parallel, learning, evaluation,
 infrastructure, multimodal, main pipeline, desktop session/app,
 cross-platform, train_v2, sandbox code, jobs, bench history, settings,

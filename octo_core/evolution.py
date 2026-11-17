@@ -144,7 +144,17 @@ def capability_manifest(session=None):
                      ("octo_core.software", "codebase understanding + test generation"),
                      ("octo_core.cybersec", "attack-surface analysis + incident timeline"),
                      ("octo_core.modelint", "test-time compute scaling + ensembles"),
-                     ("octo_core.metacog", "cognitive architecture simulator")):
+                     ("octo_core.metacog", "cognitive architecture simulator"),
+                     ("octo_core.cogx", "cognitive load, adaptive/causal/counterfactual reasoning"),
+                     ("octo_core.swarm", "agent collaboration, negotiation, reputation"),
+                     ("octo_core.memx", "associative memory, consolidation, decay, transfer"),
+                     ("octo_core.evolvex", "continual learning, replay, curriculum, adaptation"),
+                     ("octo_core.perception", "scene understanding, tracking, spatial/gesture/audio"),
+                     ("octo_core.devx", "debugging, architecture, optimization, docs, migration"),
+                     ("octo_core.secopsx", "threat intel, posture, zero-trust, IR, cloud/supply chain"),
+                     ("octo_core.sysint", "resource allocation, scheduling, self-healing, cache"),
+                     ("octo_core.humanai", "personalization, intent prediction, explainability"),
+                     ("octo_core.frontier", "architecture evolution, society sim, emergence, research planner")):
         try:
             __import__(mod)
             caps["capabilities"].append({"id": mod.split(".")[-1], "detail": cap})

@@ -12,7 +12,19 @@ Modular layers (spec Phase 1-7):
     infrastructure scheduler, cache, fault recovery, resource manager
     multimodal     vision/OCR/audio adapters (optional deps, graceful fallback)
 
+Advanced intelligence extensions (60-feature set):
+    cogx           cognitive load, adaptive/causal/counterfactual reasoning
+    swarm          agent collaboration, negotiation, reputation, workflows
+    memx           associative memory, consolidation, decay, domain transfer
+    evolvex        continual learning, replay, curriculum, adaptation loop
+    perception     scene understanding, tracking, spatial/gesture/audio
+    devx           debugging, architecture, optimization, docs, migration
+    secopsx        threat intel, posture, zero-trust, IR, cloud/supply chain
+    sysint         resource allocation, scheduling, self-healing, smart cache
+    humanai        personalization, intent prediction, explainability, teaching
+    frontier       architecture evolution, society sim, emergence, research plan
+
 Usage:
     python -m octo_core --goal "research sql injection and answer how to prevent it"
 """
-__version__ = "1.0.0"
+__version__ = "1.1.0"
