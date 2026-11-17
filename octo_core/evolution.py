@@ -155,7 +155,13 @@ def capability_manifest(session=None):
                      ("octo_core.secopsx", "threat intel, posture, zero-trust, IR, cloud/supply chain"),
                      ("octo_core.sysint", "resource allocation, scheduling, self-healing, cache"),
                      ("octo_core.humanai", "personalization, intent prediction, explainability"),
-                     ("octo_core.frontier", "architecture evolution, society sim, emergence, research planner")):
+                     ("octo_core.frontier", "architecture evolution, society sim, emergence, research planner"),
+                     ("octo_core.reasoning", "chain/tree-of-thoughts, reflection, analogical + abductive reasoning"),
+                     ("octo_core.worldmodel", "entities, causal graph, temporal + spatial world model"),
+                     ("octo_core.planner", "goals, plans, execution monitoring, multi-criteria decisions"),
+                     ("octo_core.identity", "personality, ethics engine, communication layer"),
+                     ("octo_core.actions", "tool registry, action engine, guarded automation"),
+                     ("octo_core.agentstate", "agi_state.json persistence, snapshots, encrypted backups")):
         try:
             __import__(mod)
             caps["capabilities"].append({"id": mod.split(".")[-1], "detail": cap})

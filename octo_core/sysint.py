@@ -4,6 +4,7 @@
 DynamicResourceAllocator, PriorityScheduler, FailurePredictor,
 SelfHealingManager, DistributedExecutor, SmartCacheManager.
 """
+import datetime
 
 class DynamicResourceAllocator:
     """45. Dynamic Resource Allocation: split resources by task demand."""
@@ -131,3 +132,62 @@ class SmartCacheManager:
 
     def stats(self):
         return {"entries": len(self.entries), "keys": sorted(self.entries)}
+
+
+class GracefulDegradation:
+    """Maintain core functionality under resource pressure."""
+
+    TIERS = (("full", 0.0), ("reduced", 0.6), ("core-only", 0.85))
+
+    def __init__(self):
+        self.features = {"chat": True, "memory": True, "agents": True,
+                         "multimodal": True, "training": True}
+
+    def degrade(self, pressure):
+        """Disable optional features as pressure (0..1) rises."""
+        tier = "full"
+        for name, threshold in self.TIERS:
+            if pressure >= threshold:
+                tier = name
+        if tier == "reduced":
+            self.features["multimodal"] = False
+            self.features["training"] = False
+        elif tier == "core-only":
+            self.features.update({"multimodal": False, "training": False,
+                                  "agents": False})
+        return {"pressure": pressure, "tier": tier,
+                "enabled": sorted(k for k, v in self.features.items() if v)}
+
+    def restore(self):
+        self.features = {k: True for k in self.features}
+        return dict(self.features)
+
+
+class IdleOptimizer:
+    """Background consolidation and maintenance during low-activity periods."""
+
+    def __init__(self, idle_seconds=300):
+        self.idle_seconds = idle_seconds
+        self.tasks = []
+
+    def register(self, name, fn):
+        self.tasks.append({"name": name, "fn": fn, "last": None})
+        return name
+
+    def run_idle(self, idle_for):
+        """Run maintenance tasks only when the user has been idle long enough."""
+        if idle_for < self.idle_seconds:
+            return {"ran": [], "reason": f"idle {idle_for}s < {self.idle_seconds}s"}
+        ran = []
+        for task in self.tasks:
+            try:
+                task["fn"]()
+                task["last"] = _now()
+                ran.append(task["name"])
+            except Exception:
+                pass
+        return {"ran": ran, "reason": "idle threshold reached"}
+
+
+def _now():
+    return datetime.datetime.now().isoformat(timespec="seconds")

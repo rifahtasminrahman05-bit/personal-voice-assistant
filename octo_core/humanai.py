@@ -123,3 +123,24 @@ class AdaptiveTeachingEngine:
             style = "advanced summary"
         return {"topic": topic, "style": style, "content": content,
                 "mastery": level}
+
+
+class SentimentDetector:
+    """Sentiment & Emotional State Detection: read emotional cues from input."""
+
+    POSITIVE = ("good", "great", "thanks", "love", "happy", "works", "ধন্যবাদ", "ভালো")
+    NEGATIVE = ("bad", "broken", "hate", "angry", "failing", "terrible", "খারাপ")
+    FRUSTRATED = re.compile(r"\b(again|still|not working|why won'?t|ugh)\b", re.I)
+
+    def detect(self, text):
+        t = text.lower()
+        pos = sum(1 for w in self.POSITIVE if w in t)
+        neg = sum(1 for w in self.NEGATIVE if w in t)
+        score = round(max(-1.0, min(1.0, (pos - neg) / 3.0)), 2)
+        label = "positive" if score > 0.2 else \
+                "negative" if score < -0.2 else "neutral"
+        out = {"score": score, "label": label,
+               "frustrated": bool(self.FRUSTRATED.search(text))}
+        if out["frustrated"]:
+            out["label"] = "frustrated"
+        return out

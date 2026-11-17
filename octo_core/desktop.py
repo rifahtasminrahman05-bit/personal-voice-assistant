@@ -6,10 +6,13 @@ behavior is fully testable without a display or Tkinter.
 """
 import os
 
+from .agentstate import AgentState
 from .benchhistory import BenchmarkHistory
 from .cognitive import DecisionEngine
 from .evaluation import AgentMetrics, BenchmarkSuite, HallucinationDetector
 from .evolution import RedTeamSuite, capability_manifest
+from .humanai import SentimentDetector
+from .identity import EthicsEngine
 from .infrastructure import ResourceManager
 from .jobs import JobScheduler
 from .learning import SkillManager
@@ -17,6 +20,7 @@ from .main import run_goal
 from .memory import MemoryManager
 from .security import AuditLogger, detect_prompt_injection, redact_secrets
 from .settings import Settings
+from .sysint import GracefulDegradation
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHECKPOINT = os.path.join(BASE_DIR, "octo_checkpoints", "octo.pt")
@@ -39,6 +43,10 @@ class OctoSession:
         self._router = None
         self._jobs = None
         self._selftrain_loop = None
+        self.state = AgentState()
+        self.ethics = EthicsEngine()
+        self.sentiment = SentimentDetector()
+        self.degrade_mgr = GracefulDegradation()
 
     def status(self):
         backend, model = self._router_info()
@@ -67,12 +75,16 @@ class OctoSession:
         if risk == "high":
             return "BLOCKED: এই ইনপুটে prompt-injection প্যাটার্ন ধরা পড়েছে।"
         self.memory.observe(prompt)
+        self.state.add_turn("user", prompt)
+        self.state.save()
         ready = self._router_info()[1]
         if ready is None:
             return ("Octo এখনো train হয়নি। চালান: "
                     "python -m octo.train --corpus data/octo")
         answer = self._router.answer(prompt, steps=steps or self.settings.get("steps"))
         self.memory.working.push(answer)
+        self.state.add_turn("octo", answer)
+        self.state.save()
         return redact_secrets(answer)
 
     def chat_checked(self, prompt):
@@ -246,6 +258,38 @@ class OctoSession:
                 "checkpoint": os.path.exists(loop.checkpoint),
                 "cycles": len(loop.cycles),
                 "last": loop.cycles[-1] if loop.cycles else None}
+
+    def reason(self, problem):
+        """Reasoning Engine: chain-of-thought + calibrated confidence."""
+        from .reasoning import ChainOfThought, ConfidenceCalibrator
+        cot = ChainOfThought().decompose(problem)
+        evidence = "\n".join(h["text"] for h in self.memory.recall(problem, k=3))
+        conf = ConfidenceCalibrator().calibrate(problem, evidence=evidence)
+        self.audit.log("reason", "octo",
+                       f"{len(cot['steps'])} steps, {conf['band']} confidence")
+        return {"steps": cot["steps"], "confidence": conf}
+
+    def ethics_check(self, action):
+        """Ethical Reasoning: harm assessment + boundary enforcement."""
+        report = self.ethics.assess(action)
+        report["enforcement"] = self.ethics.enforce(action)
+        self.audit.log("ethics_check", "octo",
+                       f"{report['verdict']}: {action[:80]}")
+        return report
+
+    def state_snapshot(self, label=None):
+        """Versioned state snapshot for rollback capability."""
+        dest = self.state.snapshot(label)
+        self.audit.log("state_snapshot", "octo", os.path.basename(dest))
+        return dest
+
+    def state_rollback(self):
+        out = self.state.rollback()
+        self.audit.log("state_rollback", "octo", str(out))
+        return out
+
+    def state_summary(self):
+        return self.state.summary()
 
     def voice_listen(self):
         """STT via the shared SpeechEngine; graceful text when unavailable."""
@@ -456,6 +500,23 @@ class OctoDesktopApp:
         self.lab_future.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
         ttk.Button(future_row, text="Simulate futures",
                    command=self.on_lab_future).pack(side=tk.LEFT)
+        mind_row = ttk.Frame(frame)
+        mind_row.pack(fill=tk.X, padx=6, pady=2)
+        self.lab_mind = ttk.Entry(mind_row)
+        self.lab_mind.insert(0, "scan hosts, then analyze services, then report")
+        self.lab_mind.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
+        ttk.Button(mind_row, text="Reason (CoT)",
+                   command=self.on_lab_reason).pack(side=tk.LEFT)
+        ttk.Button(mind_row, text="Ethics check",
+                   command=self.on_lab_ethics).pack(side=tk.LEFT, padx=4)
+        ttk.Button(mind_row, text="Sentiment",
+                   command=self.on_lab_sentiment).pack(side=tk.LEFT)
+        state_row = ttk.Frame(frame)
+        state_row.pack(fill=tk.X, padx=6, pady=2)
+        ttk.Button(state_row, text="Snapshot state",
+                   command=self.on_lab_snapshot).pack(side=tk.LEFT)
+        ttk.Button(state_row, text="Rollback state",
+                   command=self.on_lab_rollback).pack(side=tk.LEFT, padx=4)
         self.lab_out = self._output_box(frame)
 
     def _build_train_tab(self):
@@ -645,6 +706,40 @@ class OctoDesktopApp:
         state = "চালু" if self._autotrain_on and started else "বন্ধ"
         self._append(self.lab_out, f"auto-train {state} "
                      f"(প্রতি {self.session.selftrain_status()['interval']} সেকেন্ডে)")
+
+    def on_lab_reason(self):
+        text = self._read_entry(self.lab_mind)
+        out = self.session.reason(text)
+        for step in out["steps"]:
+            self._append(self.lab_out, step)
+        conf = out["confidence"]
+        self._append(self.lab_out,
+                     f"confidence: {conf['band']} ({conf['confidence']}) | "
+                     f"gaps: {', '.join(conf['knowledge_gaps']) or 'none'}")
+
+    def on_lab_ethics(self):
+        text = self._read_entry(self.lab_mind)
+        rep = self.session.ethics_check(text)
+        self._append(self.lab_out,
+                     f"ethics: {rep['verdict']} (harm={rep['harm_score']}, "
+                     f"categories={rep['harm_categories'] or 'none'})")
+
+    def on_lab_sentiment(self):
+        text = self._read_entry(self.lab_mind)
+        s = self.session.sentiment.detect(text)
+        self._append(self.lab_out,
+                     f"sentiment: {s['label']} (score={s['score']})")
+
+    def on_lab_snapshot(self):
+        dest = self.session.state_snapshot()
+        self._append(self.lab_out, f"snapshot saved: {dest}")
+
+    def on_lab_rollback(self):
+        out = self.session.state_rollback()
+        if out["ok"]:
+            self._append(self.lab_out, f"rolled back to: {out['restored']}")
+        else:
+            self._append(self.lab_out, f"rollback failed: {out['error']}")
 
     def on_lab_future(self):
         decisions = []

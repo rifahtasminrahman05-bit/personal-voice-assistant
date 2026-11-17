@@ -30,3 +30,7 @@ data/octo/benchmarks.jsonl
 data/octo/jobs.json
 data/octo/settings.json
 data/octo/capabilities.json
+data/octo/agi_state.json
+data/octo/agi_state.enc
+data/octo/snapshots/
+data/octo/state.key

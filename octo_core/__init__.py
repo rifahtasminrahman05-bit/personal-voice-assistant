@@ -25,7 +25,23 @@ Advanced intelligence extensions (60-feature set):
     frontier       architecture evolution, society sim, emergence, research plan
     selftrain      autonomous self-training loop (improvement-gated)
 
+Components Deep Dive (cognitive agent architecture):
+    reasoning      chain/tree-of-thoughts, reflection, calibration,
+                   analogical + abductive reasoning
+    worldmodel     entities, typed/weighted relations, states, temporal
+                   model, causal graph, spatial awareness, query engine
+    planner        goals, decomposition, sequential/parallel plans,
+                   execution monitoring, multi-criteria decisions,
+                   contingency + long-horizon planning
+    identity       personality, emotional model, relationship memory,
+                   consistency, persona modulation, ethics engine,
+                   communication/clarification layer
+    actions        tool registry, permission-checked action engine,
+                   guarded desktop automation, external tools, feedback
+    agentstate     agi_state.json persistence, agent.save(), versioned
+                   snapshots + rollback, encrypted backups
+
 Usage:
     python -m octo_core --goal "research sql injection and answer how to prevent it"
 """
-__version__ = "1.1.0"
+__version__ = "1.2.0"

@@ -377,7 +377,31 @@ Desktop `OctoSession`-এ convenience API: `predict_trend()`, `simulate_future()
 `knowledge_gaps()`, `attack_surface()`, `optimize_architecture()`; `capability_manifest()` এখন ১৫টি নতুন
 ফিচারও রিপোর্ট করে (Status ট্যাব)।
 
-Tests (250 tests across `tests/`: cognitive, security,
+## Components Deep Dive (Cognitive Agent Architecture)
+
+Octo-র সম্পূর্ণ cognitive agent architecture — ১৩টি component area, সব লোকাল ও offline:
+
+| Component | Module | যা আছে |
+| --- | --- | --- |
+| Reasoning Engine | `octo_core/reasoning.py` | Chain-of-Thought, Tree-of-Thoughts (beam + pruning), Reflection loop, Confidence calibration (meta-cognition), Analogical reasoning (case mapping), Abductive reasoning (best-explanation ranking) |
+| Memory System | `memory.py` + `memx.py` | STM (7±2 WorkingMemory), LTM (SemanticMemory), Episodic, Procedural (SkillManager), Consolidation, ranked retrieval, Controlled forgetting (decay) |
+| Planning & Goals | `octo_core/planner.py` | GoalManager (priority/deadline/metrics + decomposition), ActionPlanner (sequential/parallel + critical path), ExecutionMonitor (dynamic replanning), Multi-criteria decisions, Contingency fallbacks, Long-horizon scheduling |
+| World Model | `octo_core/worldmodel.py` | Entities, typed/weighted relations, properties/states, temporal model + projection, causal graph (transitive inference), spatial awareness, query/pattern-match/deduction engine |
+| Perception & Understanding | `humanai.py` + `sysint.py` | Intent recognition, Sentiment/emotion detection (Bangla সহ), anomaly/failure detection, context awareness |
+| Action & Tool System | `octo_core/actions.py` | ToolRegistry (discovery), ActionEngine (least-privilege + safety checks + approval gateway), Guarded desktop automation (default off), External local tools, Feedback loop, Action history + audit |
+| Learning & Adaptation | `evolvex.py` + `learning.py` | Experience replay, Preference learning, Skill acquisition, Self-evaluation (approval-gated), Curriculum, Online fine-tuning (selftrain) |
+| Personality & Identity | `octo_core/identity.py` | Core identity, Emotional model, Relationship memory, Consistency engine, Persona modulation |
+| Communication & Interface | `octo_core/identity.py` | Personality-consistent NLG, Conversation management, Clarification strategies, Explanation generation, Multi-turn coherence |
+| Ethics & Value Alignment | `octo_core/identity.py` | Value system, Harm assessment, Transparency, Boundary enforcement, User value learning |
+| Resource & Performance | `sysint.py` | Compute awareness, Priority scheduling, Idle optimization, Graceful degradation (full → reduced → core-only) |
+| Privacy & Security | `security.py` + `actions.py` | 100% offline, local-only storage, no telemetry, safe-mode guardrails, self-healing, input sanitization, sandboxed execution, least privilege, action confirmation, audit logging |
+| Data Persistence | `octo_core/agentstate.py` | `agi_state.json` (conversation + goals + runtime), `agent.save()` auto-persist, encrypted local backups, versioned snapshots + rollback |
+
+Desktop 🧪 Lab ট্যাবে নতুন বাটন: **Reason (CoT)**, **Ethics check**, **Sentiment**,
+**Snapshot state**, **Rollback state**; `OctoSession.reason() / ethics_check() /
+state_snapshot() / state_rollback()`.
+
+Tests (319 tests across `tests/`: cognitive, security,
 memory, OctoV2 model + speculative, agents + parallel, learning, evaluation,
 infrastructure, multimodal, main pipeline, desktop session/app,
 cross-platform, train_v2, sandbox code, jobs, bench history, settings,
