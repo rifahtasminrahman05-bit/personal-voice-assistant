@@ -569,7 +569,7 @@ class OctoDesktopApp:
         self.settings_out = self._output_box(frame)
 
     def _build_status_tab(self):
-        ttk = self.ttk
+        tk, ttk = self.tk, self.ttk
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="ℹ Status")
         row = ttk.Frame(frame)
