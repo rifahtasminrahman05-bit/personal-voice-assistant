@@ -23,6 +23,7 @@ Advanced intelligence extensions (60-feature set):
     sysint         resource allocation, scheduling, self-healing, smart cache
     humanai        personalization, intent prediction, explainability, teaching
     frontier       architecture evolution, society sim, emergence, research plan
+    selftrain      autonomous self-training loop (improvement-gated)
 
 Usage:
     python -m octo_core --goal "research sql injection and answer how to prevent it"

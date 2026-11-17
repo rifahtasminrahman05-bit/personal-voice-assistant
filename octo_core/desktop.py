@@ -38,6 +38,7 @@ class OctoSession:
         self.redteam = RedTeamSuite()
         self._router = None
         self._jobs = None
+        self._selftrain_loop = None
 
     def status(self):
         backend, model = self._router_info()
@@ -217,6 +218,34 @@ class OctoSession:
             {"name": "research", "needs": {"memory": 0.6, "reflection": 0.5}},
         ]
         return CognitiveArchitectureSimulator().optimize(tasks)
+
+    def _selftrain(self):
+        if self._selftrain_loop is None:
+            from .selftrain import SelfTrainingLoop
+            self._selftrain_loop = SelfTrainingLoop(
+                corpus="data/octo", out=os.path.dirname(self.checkpoint),
+                audit=self.audit)
+        return self._selftrain_loop
+
+    def selftrain_cycle(self, steps=None):
+        """Autonomous Self-Training: one improvement-gated training cycle."""
+        loop = self._selftrain()
+        if steps:
+            loop.steps = int(steps)
+        return loop.run_cycle(reason="manual")
+
+    def selftrain_toggle(self, on):
+        """Start/stop the background self-training daemon."""
+        loop = self._selftrain()
+        return loop.start() if on else loop.stop()
+
+    def selftrain_status(self):
+        loop = self._selftrain()
+        return {"running": loop.running,
+                "interval": loop.interval,
+                "checkpoint": os.path.exists(loop.checkpoint),
+                "cycles": len(loop.cycles),
+                "last": loop.cycles[-1] if loop.cycles else None}
 
     def voice_listen(self):
         """STT via the shared SpeechEngine; graceful text when unavailable."""
@@ -409,6 +438,17 @@ class OctoDesktopApp:
                    command=self.on_lab_gaps).pack(side=tk.LEFT, padx=4)
         ttk.Button(quick_row, text="Optimize architecture",
                    command=self.on_lab_optimize).pack(side=tk.LEFT)
+        train_row = ttk.Frame(frame)
+        train_row.pack(fill=tk.X, padx=6, pady=2)
+        ttk.Label(train_row, text="self-train steps:").pack(side=tk.LEFT)
+        self.lab_steps = ttk.Entry(train_row, width=8)
+        self.lab_steps.insert(0, "300")
+        self.lab_steps.pack(side=tk.LEFT, padx=4)
+        ttk.Button(train_row, text="Self-train cycle",
+                   command=self.on_lab_selftrain).pack(side=tk.LEFT, padx=4)
+        ttk.Button(train_row, text="Auto-train on/off",
+                   command=self.on_lab_autotrain).pack(side=tk.LEFT)
+        self._autotrain_on = False
         future_row = ttk.Frame(frame)
         future_row.pack(fill=tk.X, padx=6, pady=2)
         self.lab_future = ttk.Entry(future_row)
@@ -584,6 +624,27 @@ class OctoDesktopApp:
         out = self.session.optimize_architecture()
         arch = ", ".join(f"{k}={v}" for k, v in out["best_architecture"].items())
         self._append(self.lab_out, f"best architecture: {arch} (score={out['score']})")
+
+    def on_lab_selftrain(self):
+        try:
+            steps = int(self.lab_steps.get())
+        except ValueError:
+            steps = 300
+        self._append(self.lab_out, f"self-train cycle চলছে ({steps} steps)...")
+        self._run_bg(self.session.selftrain_cycle, steps,
+                     on_done=self._lab_selftrain_done)
+
+    def _lab_selftrain_done(self, report):
+        self._append(self.lab_out,
+                     f"self-train: loss {report['val_loss_before']} -> "
+                     f"{report['val_loss_after']} | {report['action']}")
+
+    def on_lab_autotrain(self):
+        self._autotrain_on = not self._autotrain_on
+        started = self.session.selftrain_toggle(self._autotrain_on)
+        state = "চালু" if self._autotrain_on and started else "বন্ধ"
+        self._append(self.lab_out, f"auto-train {state} "
+                     f"(প্রতি {self.session.selftrain_status()['interval']} সেকেন্ডে)")
 
     def on_lab_future(self):
         decisions = []

@@ -595,3 +595,88 @@ class TestFrontier:
         assert len(out["experiments"]) == 2
         assert out["steps"][0] == "literature scan"
         assert "replicated" in out["success_criteria"]
+
+
+class TestSelfTrain:
+    def _corpus(self, tmp_path):
+        corpus = tmp_path / "corpus"
+        corpus.mkdir()
+        (corpus / "notes.txt").write_text(
+            ("octo learns to predict the next token in a sequence. "
+             "attention weights decide which tokens matter most. ") * 30,
+            encoding="utf-8")
+        return str(corpus)
+
+    def test_first_cycle_trains_and_keeps(self, tmp_path):
+        from octo_core.selftrain import SelfTrainingLoop
+        loop = SelfTrainingLoop(corpus=self._corpus(tmp_path),
+                                out=str(tmp_path / "ckpt"), steps=8,
+                                eval_iters=2)
+        report = loop.run_cycle(reason="test")
+        assert report["had_checkpoint"] is False
+        assert report["kept"] is True
+        assert os.path.exists(loop.checkpoint)
+        assert os.path.exists(os.path.join(loop.out, "tokenizer_v2.json"))
+
+    def test_second_cycle_reports_before_after(self, tmp_path):
+        from octo_core.selftrain import SelfTrainingLoop
+        loop = SelfTrainingLoop(corpus=self._corpus(tmp_path),
+                                out=str(tmp_path / "ckpt"), steps=8,
+                                eval_iters=2)
+        loop.run_cycle()
+        report = loop.run_cycle(reason="test2")
+        assert report["had_checkpoint"] is True
+        assert report["val_loss_before"] is not None
+        assert report["val_loss_after"] is not None
+        assert len(loop.history()) == 2
+
+    def test_rollback_on_regression(self, tmp_path, monkeypatch):
+        from octo_core.selftrain import SelfTrainingLoop
+        loop = SelfTrainingLoop(corpus=self._corpus(tmp_path),
+                                out=str(tmp_path / "ckpt"), steps=8,
+                                eval_iters=2)
+        loop.run_cycle()
+        before_size = os.path.getsize(loop.checkpoint)
+        monkeypatch.setattr(loop, "_validation_loss",
+                            lambda: (10.0 if os.path.exists(loop.checkpoint)
+                                     and os.path.getsize(loop.checkpoint) == before_size
+                                     else 20.0))
+        report = loop.run_cycle(reason="regress")
+        assert report["improved"] is False
+        assert report["action"] == "rolled back to previous checkpoint"
+        assert os.path.exists(loop.checkpoint)
+        assert not os.path.exists(loop.backup)
+
+    def test_start_stop_daemon(self, tmp_path):
+        from octo_core.selftrain import SelfTrainingLoop
+        loop = SelfTrainingLoop(corpus=self._corpus(tmp_path),
+                                out=str(tmp_path / "ckpt"), steps=2,
+                                eval_iters=2, interval=3600)
+        assert loop.start() is True
+        assert loop.running
+        assert loop.start() is False
+        assert loop.stop() is True
+        loop._thread.join(timeout=5)
+        assert not loop.running
+
+    def test_session_integration(self, tmp_path):
+        corpus = tmp_path / "corpus"
+        corpus.mkdir()
+        (corpus / "notes.txt").write_text(
+            "octo is a self-training intelligence platform. " * 20,
+            encoding="utf-8")
+        from octo_core.desktop import OctoSession
+        s = OctoSession(roots=(str(corpus),),
+                        checkpoint=str(tmp_path / "ckpt" / "octo.pt"))
+        report = s.selftrain_cycle(steps=4)
+        assert report["kept"] is True
+        status = s.selftrain_status()
+        assert status["checkpoint"] is True and status["cycles"] == 1
+        assert s.selftrain_toggle(True) is True
+        assert s.selftrain_status()["running"] is True
+        s.selftrain_toggle(False)
+        import time
+        deadline = time.time() + 60
+        while s.selftrain_status()["running"] and time.time() < deadline:
+            time.sleep(0.2)
+        assert s.selftrain_status()["running"] is False

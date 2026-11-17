@@ -354,6 +354,25 @@ stdlib heuristic, সম্পূর্ণ টেস্টযোগ্য):
 
 `capability_manifest()` এখন সবগুলো নতুন মডিউলও রিপোর্ট করে (Status ট্যাব)।
 
+### নিজে-নিজে ট্রেন (Autonomous Self-Training)
+
+`octo_core/selftrain.py` — OctoV2 নিজে নিজে ট্রেন হয়, নিরাপদভাবে:
+
+- প্রতিটি cycle: বর্তমান checkpoint-এর validation loss মাপা → কর্পাসে ট্রেন চালিয়ে যাওয়া
+  → আবার loss মাপা → **উন্নতি হলেই শুধু নতুন checkpoint রাখা**, নাহলে আগেরটায় rollback
+- প্রতিটি cycle audit log-এ যায়; production কোড কখনো স্পর্ষ হয় না (শুধু model weights)
+- ব্যাকগ্রাউন্ড daemon: `loop.start()` — প্রতি `interval` সেকেন্ডে এক cycle; `stop()` দিয়ে থামে
+
+```bash
+# এক cycle এখনই:
+python -c "from octo_core.selftrain import SelfTrainingLoop; \
+  SelfTrainingLoop(steps=500).run_cycle('manual')"
+```
+
+Desktop 🧪 Lab ট্যাবে: **Self-train cycle** বাটন (এক cycle) ও **Auto-train on/off**
+(ব্যাকগ্রাউন্ড daemon); `OctoSession.selftrain_cycle() / selftrain_toggle() /
+selftrain_status()`.
+
 Desktop `OctoSession`-এ convenience API: `predict_trend()`, `simulate_future()`,
 `knowledge_gaps()`, `attack_surface()`, `optimize_architecture()`; `capability_manifest()` এখন ১৫টি নতুন
 ফিচারও রিপোর্ট করে (Status ট্যাব)।

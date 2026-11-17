@@ -145,6 +145,7 @@ def capability_manifest(session=None):
                      ("octo_core.cybersec", "attack-surface analysis + incident timeline"),
                      ("octo_core.modelint", "test-time compute scaling + ensembles"),
                      ("octo_core.metacog", "cognitive architecture simulator"),
+                     ("octo_core.selftrain", "autonomous self-training loop (improvement-gated)"),
                      ("octo_core.cogx", "cognitive load, adaptive/causal/counterfactual reasoning"),
                      ("octo_core.swarm", "agent collaboration, negotiation, reputation"),
                      ("octo_core.memx", "associative memory, consolidation, decay, transfer"),
