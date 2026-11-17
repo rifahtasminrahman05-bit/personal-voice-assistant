@@ -559,3 +559,155 @@ class TestSessionDeep:
         assert defensive["verdict"] == "review"
         offensive = e.assess("run a brute force attack against their server")
         assert offensive["verdict"] == "refuse"
+
+
+class TestCognitiveCore:
+    def core(self, tmp_path):
+        from octo_core.cognitive_core import (AutomationEngine, CognitiveCore,
+                                              SecurityCore, VisionSystem,
+                                              VoiceInterface)
+        from octo_core.security import AuditLogger, PermissionManager
+
+        class FakeSpeech:
+            def is_stt_ready(self):
+                return True
+
+            def is_tts_ready(self):
+                return True
+
+            def is_wakeword_ready(self):
+                return False
+
+            def listen(self, timeout=None):
+                return "harden ssh"
+
+            def speak(self, text):
+                return None
+
+        perms = PermissionManager()
+        audit = AuditLogger(path=str(tmp_path / "audit.jsonl"))
+        voice = VoiceInterface(engine=FakeSpeech())
+        vision = VisionSystem()
+        auto = AutomationEngine(permissions=perms, audit=audit,
+                                approval=lambda a, desc: True)
+        auto.register_device("desk lamp", "light",
+                             lambda cmd: f"lamp set ({cmd})", risky=False)
+        auto.register_device("front door", "lock",
+                             lambda cmd: f"door {cmd}", risky=False)
+        sec = SecurityCore(permissions=perms, audit=audit,
+                           approval=lambda a, desc: True)
+        return CognitiveCore(voice=voice, vision=vision, automation=auto,
+                             security=sec, audit=audit)
+
+    def test_127_voice_interface_listen_speak(self, tmp_path):
+        from octo_core.cognitive_core import VoiceInterface
+
+        class FakeSpeech:
+            def is_stt_ready(self):
+                return True
+
+            def is_tts_ready(self):
+                return True
+
+            def is_wakeword_ready(self):
+                return False
+
+            def listen(self, timeout=None):
+                return "hello octo"
+
+            def speak(self, text):
+                return None
+
+        v = VoiceInterface(engine=FakeSpeech())
+        st = v.status()
+        assert st["stt"] and st["tts"] and st["mode"] == "voice"
+        assert v.listen()["text"] == "hello octo"
+        assert v.speak("hi")["ok"] is True
+
+    def test_128_voice_interface_degrades_without_hardware(self):
+        from octo_core.cognitive_core import VoiceInterface
+
+        class Broken:
+            def __init__(self):
+                raise ImportError("no audio")
+
+        v = VoiceInterface()
+        st = v.status()
+        assert st["mode"] == "text-only"
+        assert v.listen()["ok"] is False
+        assert v.speak("hi")["ok"] is False
+
+    def test_129_vision_system_analyze(self, tmp_path):
+        from octo_core.cognitive_core import VisionSystem
+        vs = VisionSystem()
+        img = tmp_path / "shot.png"
+        img.write_bytes(b"\x89PNG fake")
+        entry = vs.analyze_image(str(img))
+        assert entry["description"]
+        assert vs.understand_screen(str(img))["kind"] == "screen"
+        assert len(vs.seen) == 2
+
+    def test_130_vision_camera_graceful(self):
+        from octo_core.cognitive_core import VisionSystem
+        vs = VisionSystem()
+        out = vs.capture_camera()
+        if not vs.camera_available():
+            assert out["ok"] is False and "opencv" in out["reason"]
+
+    def test_131_automation_computer_and_smarthome(self, tmp_path):
+        core = self.core(tmp_path)
+        out = core.automation.control("desk lamp", "turn on")
+        assert out["ok"] is True and "lamp" in out["output"]
+        assert core.automation.devices_by_kind("lock") == ["front door"]
+        assert len(core.automation.log()) == 1
+
+    def test_132_automation_lock_requires_approval(self, tmp_path):
+        from octo_core.cognitive_core import AutomationEngine
+        from octo_core.security import AuditLogger, PermissionManager
+        auto = AutomationEngine(
+            permissions=PermissionManager(),
+            audit=AuditLogger(path=str(tmp_path / "a.jsonl")),
+            approval=None)
+        auto.register_device("front door", "lock", lambda cmd: "done")
+        out = auto.control("front door", "lock")
+        assert out["ok"] is False and "approval" in out["error"]
+
+    def test_133_security_core_permissions_and_monitor(self, tmp_path):
+        core = self.core(tmp_path)
+        core.security.grant("octo-agent", {"desk lamp"})
+        report = core.security.monitor(50)
+        assert report["events"] > 0
+        assert report["verdict"] in ("clean", "review")
+        core.security.revoke("octo-agent")
+        assert core.automation.control("desk lamp", "on")["ok"] is False
+
+    def test_134_core_decide_routes(self, tmp_path):
+        core = self.core(tmp_path)
+        assert core.decide("turn the desk lamp on")["route"] == "automation"
+        assert core.decide("what is on my screen")["route"] == "vision"
+        assert core.decide("listen to me")["route"] == "voice"
+        assert core.decide("explain quicksort")["route"] == "reason"
+
+    def test_135_core_cycle_end_to_end(self, tmp_path):
+        core = self.core(tmp_path)
+        out = core.cycle("turn the desk lamp on")
+        assert out["decision"]["route"] == "automation"
+        assert out["result"]["ok"] is True
+        blocked = core.cycle("lock the front door", approve=lambda a, d: False)
+        assert blocked["result"]["ok"] is False
+
+    def test_136_session_core_integration(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        corpus = tmp_path / "corpus"
+        corpus.mkdir(exist_ok=True)
+        (corpus / "notes.txt").write_text(
+            "octo is a modular intelligence platform with a cognitive core "
+            "that routes voice, vision, automation and security.",
+            encoding="utf-8")
+        from octo_core.desktop import OctoSession
+        s = OctoSession(roots=(str(corpus),),
+                        checkpoint="/nonexistent/octo.pt")
+        st = s.core_status()
+        assert "voice" in st and "vision" in st and "automation" in st
+        out = s.core_cycle("explain quicksort")
+        assert out["decision"]["route"] == "reason"

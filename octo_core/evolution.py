@@ -161,7 +161,8 @@ def capability_manifest(session=None):
                      ("octo_core.planner", "goals, plans, execution monitoring, multi-criteria decisions"),
                      ("octo_core.identity", "personality, ethics engine, communication layer"),
                      ("octo_core.actions", "tool registry, action engine, guarded automation"),
-                     ("octo_core.agentstate", "agi_state.json persistence, snapshots, encrypted backups")):
+                     ("octo_core.agentstate", "agi_state.json persistence, snapshots, encrypted backups"),
+                     ("octo_core.cognitive_core", "cognitive core: voice, vision, guarded automation, security")):
         try:
             __import__(mod)
             caps["capabilities"].append({"id": mod.split(".")[-1], "detail": cap})

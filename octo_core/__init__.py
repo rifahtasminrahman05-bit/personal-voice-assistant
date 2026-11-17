@@ -40,8 +40,10 @@ Components Deep Dive (cognitive agent architecture):
                    guarded desktop automation, external tools, feedback
     agentstate     agi_state.json persistence, agent.save(), versioned
                    snapshots + rollback, encrypted backups
+    cognitive_core মস্তিষ্ক ও সিদ্ধান্ত গ্রহণ: voice interface, vision
+                   system, guarded automation engine, security core
 
 Usage:
     python -m octo_core --goal "research sql injection and answer how to prevent it"
 """
-__version__ = "1.2.0"
+__version__ = "1.3.0"

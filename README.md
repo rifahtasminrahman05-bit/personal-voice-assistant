@@ -397,11 +397,24 @@ Octo-র সম্পূর্ণ cognitive agent architecture — ১৩টি 
 | Privacy & Security | `security.py` + `actions.py` | 100% offline, local-only storage, no telemetry, safe-mode guardrails, self-healing, input sanitization, sandboxed execution, least privilege, action confirmation, audit logging |
 | Data Persistence | `octo_core/agentstate.py` | `agi_state.json` (conversation + goals + runtime), `agent.save()` auto-persist, encrypted local backups, versioned snapshots + rollback |
 
+## 🧠 Cognitive Core — মস্তিষ্ক ও সিদ্ধান্ত গ্রহণ
+
+`octo_core/cognitive_core.py` — চারটি embodied component-কে একটি perceive → decide → act লুপে যুক্ত করে:
+
+| # | Component | ক্লাস | বিবরণ |
+| --- | --- | --- | --- |
+| 1 | Voice Interface | `VoiceInterface` | কথা বলা ও শোনা — `speech/engine.py` ব্যবহার করে; হার্ডওয়্যার না থাকলে text-only মোডে নামে |
+| 2 | Vision System | `VisionSystem` | ক্যামেরা ও স্ক্রিন বোঝা — image/OCR/screen analysis, ক্যামেরা ক্যাপচার (opencv থাকলে) |
+| 3 | Automation Engine | `AutomationEngine` | কম্পিউটার, স্মার্ট হোম ও ডিভাইস নিয়ন্ত্রণ — প্রতিটি কমান্ড permission-checked + lock/power/delete-এ approval বাধ্যতামূলক |
+| 4 | Security Core | `SecurityCore` | অনুমতি, নিরাপত্তা ও কার্যক্রম পর্যবেক্ষণ — grant/revoke, activity monitor, anomaly সনাক্তকরণ |
+
+`CognitiveCore.decide()` ইনপুট রাউট করে (automation / vision / voice / reason), `cycle()` সম্পূর্ণ রাউন্ড চালায় ও audit-logged। Desktop 🧪 Lab ট্যাবে **Cognitive Core** বাটন; `OctoSession.core_status() / core_cycle()`।
+
 Desktop 🧪 Lab ট্যাবে নতুন বাটন: **Reason (CoT)**, **Ethics check**, **Sentiment**,
 **Snapshot state**, **Rollback state**; `OctoSession.reason() / ethics_check() /
 state_snapshot() / state_rollback()`.
 
-Tests (319 tests across `tests/`: cognitive, security,
+Tests (331 tests across `tests/`: cognitive, security,
 memory, OctoV2 model + speculative, agents + parallel, learning, evaluation,
 infrastructure, multimodal, main pipeline, desktop session/app,
 cross-platform, train_v2, sandbox code, jobs, bench history, settings,

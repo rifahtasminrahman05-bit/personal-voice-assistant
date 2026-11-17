@@ -10,6 +10,7 @@ import re
 from .agentstate import AgentState
 from .benchhistory import BenchmarkHistory
 from .cognitive import DecisionEngine
+from .cognitive_core import CognitiveCore
 from .evaluation import AgentMetrics, BenchmarkSuite, HallucinationDetector
 from .evolution import RedTeamSuite, capability_manifest
 from .humanai import SentimentDetector
@@ -51,6 +52,7 @@ class OctoSession:
         self.ethics = EthicsEngine()
         self.sentiment = SentimentDetector()
         self.degrade_mgr = GracefulDegradation()
+        self.core = CognitiveCore(audit=self.audit)
 
     def status(self):
         backend, model = self._router_info()
@@ -295,6 +297,13 @@ class OctoSession:
     def state_summary(self):
         return self.state.summary()
 
+    def core_status(self):
+        return self.core.status()
+
+    def core_cycle(self, user_input, approve=None, path=None):
+        out = self.core.cycle(user_input, approve=approve, path=path)
+        return out
+
     def voice_listen(self):
         """STT via the shared SpeechEngine; graceful text when unavailable."""
         try:
@@ -521,6 +530,8 @@ class OctoDesktopApp:
                    command=self.on_lab_snapshot).pack(side=tk.LEFT)
         ttk.Button(state_row, text="Rollback state",
                    command=self.on_lab_rollback).pack(side=tk.LEFT, padx=4)
+        ttk.Button(state_row, text="Cognitive Core",
+                   command=self.on_lab_core).pack(side=tk.LEFT, padx=4)
         self.lab_out = self._output_box(frame)
 
     def _build_train_tab(self):
@@ -744,6 +755,20 @@ class OctoDesktopApp:
             self._append(self.lab_out, f"rolled back to: {out['restored']}")
         else:
             self._append(self.lab_out, f"rollback failed: {out['error']}")
+
+    def on_lab_core(self):
+        text = self._read_entry(self.lab_mind)
+        out = self.session.core_cycle(text)
+        dec, res = out["decision"], out["result"]
+        self._append(self.lab_out,
+                     f"core: route={dec['route']} ok={res.get('ok')} "
+                     f"| {str(res.get('output') or res.get('error') or res.get('note') or '')[:150]}")
+        st = self.session.core_status()
+        self._append(self.lab_out,
+                     f"core status: voice={st['voice']['mode']}, "
+                     f"camera={st['vision']['camera']}, "
+                     f"devices={len(st['automation']['devices'])}, "
+                     f"security={st['security']}")
 
     def on_lab_future(self):
         decisions = []
