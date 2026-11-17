@@ -5,6 +5,7 @@ Everything the GUI does goes through this class, so the desktop app's
 behavior is fully testable without a display or Tkinter.
 """
 import os
+import re
 
 from .agentstate import AgentState
 from .benchhistory import BenchmarkHistory
@@ -24,6 +25,9 @@ from .sysint import GracefulDegradation
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHECKPOINT = os.path.join(BASE_DIR, "octo_checkpoints", "octo.pt")
+EXFIL_REQUEST = re.compile(
+    r"\b(send|show|print|reveal|upload|post|exfiltrate|hand over)\b[^.?!]*"
+    r"\b(passwords?|api[- ]?keys?|tokens?|secrets?|credentials)\b", re.I)
 
 
 class OctoSession:
@@ -72,7 +76,7 @@ class OctoSession:
     def chat(self, prompt, steps=None):
         """RAG-grounded Octo LLM answer (settings-driven), or guidance."""
         risk, _ = detect_prompt_injection(prompt)
-        if risk == "high":
+        if risk == "high" or (risk == "medium" and EXFIL_REQUEST.search(prompt)):
             return "BLOCKED: এই ইনপুটে prompt-injection প্যাটার্ন ধরা পড়েছে।"
         self.memory.observe(prompt)
         self.state.add_turn("user", prompt)
@@ -453,7 +457,7 @@ class OctoDesktopApp:
         self.sec_out = self._output_box(frame)
 
     def _build_bench_tab(self):
-        ttk = self.ttk
+        tk, ttk = self.tk, self.ttk
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="📊 Benchmarks")
         row = ttk.Frame(frame)

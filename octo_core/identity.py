@@ -85,6 +85,9 @@ class EthicsEngine:
         (re.compile(r"\b(steal|exfiltrate|phish|impersonate)\b", re.I), 0.95, "deception/theft"),
         (re.compile(r"\b(password|token|api[- ]?key)\b.*\b(send|upload|share)\b", re.I), 0.85, "secret-exfiltration"),
     )
+    DEFENSIVE = re.compile(
+        r"\b(analyz(e|ing)|detect|prevention|defend|audit|logs?|monitor|"
+        r"investigat|report|protect|mitigat|harden|assessment)\b", re.I)
     DEFAULT_VALUES = ("no-harm", "privacy", "transparency", "user-sovereignty")
 
     def __init__(self, values=None):
@@ -102,8 +105,11 @@ class EthicsEngine:
 
     def assess(self, action_text):
         harms, score = [], 0.0
+        defensive = bool(self.DEFENSIVE.search(action_text))
         for pat, weight, kind in self.HARM_PATTERNS:
             if pat.search(action_text):
+                if kind == "offensive-security" and defensive:
+                    weight = 0.35
                 harms.append(kind)
                 score = max(score, weight)
         return {"action": action_text[:120], "harm_score": round(score, 2),

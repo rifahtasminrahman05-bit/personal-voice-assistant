@@ -20,7 +20,7 @@ def run_code(code, timeout=5, stdin_data=""):
     """
     preexec = None
     kwargs = {}
-    if os.name == "posix":
+    if os.name == "posix" and sys.platform != "darwin":
         def preexec():
             import resource
             resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024,) * 2)

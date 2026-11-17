@@ -188,6 +188,9 @@ class TestSummarize:
 
 class TestQuantize:
     def test_quantize_smaller_and_loadable(self, tmp_path):
+        import torch
+        if torch.backends.quantized.engine == "none":
+            pytest.skip("no quantization engine on this platform")
         from octo.quantize import quantize
         cfg = OctoConfig(vocab_size=64, block_size=64, n_layer=2, n_head=4, n_embd=128, dropout=0.0)
         torch.manual_seed(0)
