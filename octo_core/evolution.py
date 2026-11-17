@@ -162,7 +162,18 @@ def capability_manifest(session=None):
                      ("octo_core.identity", "personality, ethics engine, communication layer"),
                      ("octo_core.actions", "tool registry, action engine, guarded automation"),
                      ("octo_core.agentstate", "agi_state.json persistence, snapshots, encrypted backups"),
-                     ("octo_core.cognitive_core", "cognitive core: voice, vision, guarded automation, security")):
+                     ("octo_core.cognitive_core", "cognitive core: voice, vision, guarded automation, security"),
+                     ("octo_core.voiceint", "voice auth, speaker ID, emotion, VAD, multilingual voice"),
+                     ("octo_core.smarthome", "smart home hub: lights, locks, CCTV, motion, energy"),
+                     ("octo_core.desktopctl", "desktop control: apps, files, windows, clipboard, volume"),
+                     ("octo_core.visionx", "face/person detection, expressions, documents, video"),
+                     ("octo_core.assistant", "personal assistant: calendar, tasks, briefing, notes"),
+                     ("octo_core.sysmon", "system monitors, crash detection, health dashboard"),
+                     ("octo_core.surveillance", "intrusion, face access, malware scan, alerts"),
+                     ("octo_core.researchint", "fact checking, news monitor, reports, source verify"),
+                     ("octo_core.robotics", "sensors, motors, navigation, manipulation, e-stop"),
+                     ("octo_core.rifah", "HUD, suit diagnostics, tactical analysis, maintenance"),
+                     ("octo_core.integrations", "phone/watch/IoT bus, local vault, secure messaging")):
         try:
             __import__(mod)
             caps["capabilities"].append({"id": mod.split(".")[-1], "detail": cap})

@@ -414,11 +414,34 @@ Desktop 🧪 Lab ট্যাবে নতুন বাটন: **Reason (CoT)**,
 **Snapshot state**, **Rollback state**; `OctoSession.reason() / ethics_check() /
 state_snapshot() / state_rollback()`.
 
-Tests (331 tests across `tests/`: cognitive, security,
+## 🌐 185-Feature Expansion — 15 ক্যাটাগরির সম্পূর্ণ কভারেজ
+
+185-ফিচারের তালিকার যেগুলো আগে ছিল না, সেগুলো ১১টি নতুন মডিউলে যুক্ত হয়েছে।
+100% offline, local-only; ধ্বংসাত্মক কাজে approval-gate; cloud-এর বদলে encrypted local vault:
+
+| Category | Module | নতুন ফিচার |
+| --- | --- | --- |
+| 2. Voice Intelligence | `octo_core/voiceint.py` | 19-24, 27: voice auth, speaker ID, voice emotion, VAD, noise cancellation, multilingual voice, conversational voice memory |
+| 3. Smart Home | `octo_core/smarthome.py` | 28-40: light/fan/AC/lock (approval-gated), CCTV, motion, temperature, appliance, energy, security automation, occupancy, scheduling, central hub |
+| 4. Desktop Control | `octo_core/desktopctl.py` | 42-49, 51-55: mouse/keyboard, app launch/kill, file ops, folder organize, browser, screen, window, clipboard, volume, gated installs, troubleshooting |
+| 5. Vision & Perception | `octo_core/visionx.py` | 57, 58, 60, 62, 65, 67, 68: face detection, object/person recognition, expression analysis, document recognition, visual anomaly, video analysis |
+| 6. Personal Assistant | `octo_core/assistant.py` | 69-82: calendar, reminders, alarms, tasks, email drafts, meetings, daily briefing, offline weather cache, news digest, notes, contacts, travel, time plan, goals |
+| 7. System Intelligence | `octo_core/sysmon.py` | 83-91, 93, 95: CPU/GPU/RAM/storage/network/battery/temperature/process monitors, optimizer, allocator, crash detection, recovery, health dashboard |
+| 8. Security & Surveillance | `octo_core/surveillance.py` | 96-101, 105, 107: intrusion, unauthorized access, face access control, suspicious activity, network audit, malware scan, emergency alerts, camera motion |
+| 9. Internet & Research | `octo_core/researchint.py` | 110, 113, 115-118: website analysis, fact checking, news monitor, document analysis, report generation, source verification |
+| 10. Robotics | `octo_core/robotics.py` | 119-129: robot integration, sensor bus, motors, navigation, obstacle detection, path planning, mapping, autonomous movement, manipulation, e-stop, status |
+| 13. Rifah-Inspired | `octo_core/rifah.py` | 151-165: holographic/AR/HUD, suit + armor diagnostics, flight telemetry, threat assessment, tactical analysis, target tracking, environmental threats, emergency response, hardware diagnostics, predictive maintenance |
+| 15. Communication & Integration | `octo_core/integrations.py` | 176-185: smartphone, smartwatch, IoT, local-only API registry, **LocalVault (cloud-এর বদলে encrypted local vault)**, cross-device sync, remote-access guard, secure messenger, notifications, multi-platform |
+
+বাকি ক্যাটাগরি (1, 11, 12, 14) আগের মডিউলগুলোতেই ছিল — কোনো ডুপ্লিকেট যোগ করা হয়নি।
+
+Tests (402 tests across `tests/`: cognitive, security,
 memory, OctoV2 model + speculative, agents + parallel, learning, evaluation,
 infrastructure, multimodal, main pipeline, desktop session/app,
 cross-platform, train_v2, sandbox code, jobs, bench history, settings,
-memory export, evolution/red-team/distill/continual):
+memory export, evolution/red-team/distill/continual, 185-feature expansion
+(voice, smart home, desktop control, vision, assistant, system, surveillance,
+research, robotics, rifah, integrations)):
 
 CI runs the test suite on every push/PR (`.github/workflows/ci.yml`).
 

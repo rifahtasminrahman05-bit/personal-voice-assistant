@@ -43,7 +43,37 @@ Components Deep Dive (cognitive agent architecture):
     cognitive_core মস্তিষ্ক ও সিদ্ধান্ত গ্রহণ: voice interface, vision
                    system, guarded automation engine, security core
 
+185-feature expansion (15 categories, missing features added):
+    voiceint       voice auth, speaker ID, emotion, VAD, noise gate,
+                   multilingual voice, conversational voice memory
+    smarthome      HomeHub: lights/fan/AC/lock/CCTV/motion/temperature,
+                   energy, security events, schedules, all-off
+    desktopctl     mouse/keyboard, app launch/kill, file ops, folder
+                   organize, browser, window/clipboard/volume,
+                   gated installs, troubleshooting
+    visionx        face detection, person recognition, expressions,
+                   document recognition, visual anomaly, video analysis
+    assistant      calendar, reminders, alarms, tasks, email drafts,
+                   meetings, briefing, offline weather cache, notes,
+                   contacts, travel, time plan, goals
+    sysmon         CPU/GPU/RAM/storage/network/battery/temperature/
+                   process monitors, optimizer, allocator, crash
+                   detection, recovery, health dashboard
+    surveillance   intrusion, unauthorized access, face access,
+                   suspicious activity, network audit, malware scan,
+                   emergency alerts, camera motion
+    researchint    website analysis, fact checking, news monitor,
+                   document analysis, report generation, source verify
+    robotics       sensor bus, motors, navigation/path planning, map,
+                   manipulation, autonomous movement, e-stop, monitor
+    rifah          holographic/AR/HUD, suit + armor diagnostics, flight
+                   telemetry, tactical analysis, target tracking,
+                   emergency response, hardware + predictive maintenance
+    integrations   phone/watch/IoT/API over local bus, encrypted local
+                   vault (instead of cloud), cross-device sync,
+                   remote-access guard, secure messenger, notifications
+
 Usage:
     python -m octo_core --goal "research sql injection and answer how to prevent it"
 """
-__version__ = "1.3.0"
+__version__ = "1.4.0"
