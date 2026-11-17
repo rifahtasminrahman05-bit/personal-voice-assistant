@@ -1,5 +1,0 @@
-{"prompt": "How do I prevent SQL injection?", "response": "Use parameterized queries or prepared statements, validate input, apply least privilege on DB accounts, and never concatenate user input into SQL strings."}
-{"prompt": "What is defense in depth?", "response": "Layering multiple security controls (firewalls, patching, least privilege, monitoring, backups) so a single failure does not expose the whole system."}
-{"prompt": "Write a python function to reverse a string.", "response": "def reverse(s):\n    return s[::-1]"}
-{"prompt": "What does the CIA triad mean?", "response": "Confidentiality, Integrity and Availability — the three core goals of information security."}
-{"prompt": "How do I debug a python traceback?", "response": "Read the traceback bottom-up, find the failing line, print or inspect variables there, and write a small test that reproduces the error."}
