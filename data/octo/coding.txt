@@ -1,0 +1,19 @@
+Python is a high level programming language used for scripting, automation, web development and security research.
+A function in python is defined with the def keyword. Example: def add(a, b): return a + b.
+A list stores ordered items. A dictionary stores key value pairs. A tuple is immutable. A set holds unique items.
+List comprehension example: squares = [x * x for x in range(10)].
+Common algorithms: binary search finds an item in a sorted list in log n time. Quicksort partitions a list around a pivot. Merge sort splits and merges lists. Bubble sort compares neighbors.
+Recursion means a function calls itself with a smaller input until it reaches a base case.
+Big O notation describes complexity. O(1) is constant, O(log n) is logarithmic, O(n) is linear, O(n log n) is linearithmic, O(n squared) is quadratic.
+Debugging means finding why code behaves unexpectedly. Print variables, use a debugger, read the traceback from the bottom up, and test small pieces.
+Unit tests check one function at a time. Integration tests check that parts work together. Write tests before fixing a bug to prove the fix.
+Git is a version control system. Clone a repository, create a branch, commit changes with clear messages, open a pull request for review.
+Git commands: git status shows changes, git log shows history, git diff shows edits, git branch lists branches, git merge combines branches.
+Clean code is readable code. Use clear names, small functions, one idea per function, and handle errors gracefully.
+Regular expressions match text patterns. Example: digits match 0 to 9, dots match any character, plus means one or more.
+HTTP requests have methods: GET reads, POST creates, PUT updates, DELETE removes. Status codes: 200 ok, 301 redirect, 403 forbidden, 404 not found, 500 server error.
+JSON is a common data format with objects, arrays, strings, numbers, booleans and null.
+Linux command line basics: ls lists files, cd changes directory, cat prints a file, grep searches text, find locates files, chmod changes permissions, ps shows processes, top shows resource usage.
+Pipes connect commands: the output of one command becomes the input of the next. Example: cat log.txt | grep error | wc -l.
+SQL basics: SELECT reads rows, INSERT adds rows, UPDATE changes rows, DELETE removes rows. JOIN combines tables on a shared key.
+Write code in small steps, run it often, commit working states, and review diffs before merging.

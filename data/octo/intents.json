@@ -1,0 +1,16 @@
+[
+  {"text": "আবহাওয়া কেমন", "intent": "weather"},
+  {"text": "আজ বৃষ্টি হবে কি", "intent": "weather"},
+  {"text": "weather today", "intent": "weather"},
+  {"text": "তাপমাত্রা কত", "intent": "weather"},
+  {"text": "মনে রাখো কাল মিটিং", "intent": "note"},
+  {"text": "নোট নাও", "intent": "note"},
+  {"text": "remember this", "intent": "note"},
+  {"text": "একটা নোট লিখো", "intent": "note"},
+  {"text": "এলএলএম এজেন্ট", "intent": "llm_agent"},
+  {"text": "agi চালাও", "intent": "llm_agent"},
+  {"text": "অক্টো কে জিজ্ঞেস করো", "intent": "llm_agent"},
+  {"text": "সেলফ রিপোর্ট", "intent": "status"},
+  {"text": "সিস্টেম স্ট্যাটাস", "intent": "status"},
+  {"text": "how is the system", "intent": "status"}
+]

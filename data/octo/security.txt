@@ -1,0 +1,21 @@
+Cybersecurity protects systems, networks and data from unauthorized access. The core goals are confidentiality, integrity and availability, known as the CIA triad.
+Ethical hacking means testing systems with permission to find weaknesses before attackers do. Professionals follow rules of engagement, get written authorization, and report findings responsibly.
+Common CTF capture the flag categories are web, crypto, forensics, reverse engineering, pwn binary exploitation, and osint open source intelligence.
+Defense in depth layers many controls so one failure does not expose everything: firewalls, patching, least privilege, monitoring and backups.
+Authentication proves identity. Authorization decides what an identity may do. Use multi factor authentication and never store plain text passwords; store salted slow hashes like bcrypt or argon2.
+The OWASP Top Ten lists common web risks including broken access control, injection, misconfiguration, vulnerable components and identification failures.
+Input validation and parameterized queries prevent injection. Output encoding prevents cross site scripting. CSRF tokens prevent forged requests. Security headers like content security policy reduce browser risks.
+Encryption protects data. Symmetric encryption like AES uses one shared key. Asymmetric encryption like RSA uses a public and private key pair. TLS encrypts traffic in transit. Hashing is one way and verifies integrity.
+A vulnerability is a weakness, an exploit is code that abuses it, a threat is a potential danger, and risk is likelihood times impact.
+CVE is a public identifier for a disclosed vulnerability. CVSS scores severity from low to critical. Keep an inventory and patch known CVEs quickly.
+Network security uses segmentation, firewalls, intrusion detection, and encrypted tunnels. Know common ports: 22 ssh, 53 dns, 80 http, 443 https, 3306 mysql.
+DNS translates names to addresses. Attackers abuse DNS for phishing and tunneling; defenders monitor queries and use DNS filtering.
+Phishing tricks users into revealing secrets. Training, mail filtering, and reporting buttons reduce risk. Never share passwords or one time codes.
+Forensics collects and analyzes evidence while preserving integrity: disk images, memory dumps, timestamps and chain of custody logs.
+Incident response follows phases: prepare, detect, contain, eradicate, recover, and review lessons learned.
+Threat modeling asks what can go wrong: identify assets, entry points, trust boundaries, and prioritize mitigations.
+OSINT research uses public sources such as search engines, public records, certificate logs and code repositories. Always respect privacy and terms of service.
+Responsible disclosure means reporting a found weakness privately to the vendor and giving time to fix before public details.
+A honeypot is a decoy system that detects and studies attackers. Sandboxes run suspicious files in isolation.
+Log monitoring and alerting catch anomalies. Keep clocks synchronized, retain logs securely, and limit who can read them.
+Strong passwords are long and unique. A password manager stores them. Rotate secrets after any suspected leak.
