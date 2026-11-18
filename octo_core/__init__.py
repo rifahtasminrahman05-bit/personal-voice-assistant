@@ -72,8 +72,17 @@ Components Deep Dive (cognitive agent architecture):
     integrations   phone/watch/IoT/API over local bus, encrypted local
                    vault (instead of cloud), cross-device sync,
                    remote-access guard, secure messenger, notifications
+    master         OCTO AI Ultimate Master System: master prompt,
+                   MasterOrchestrator (intent → requirements →
+                   decomposition → agents → tools → execution →
+                   verification → delivery), 20-agent registry in 5
+                   divisions (nothing counts as capable until registered),
+                   LEVEL 0-4 permissions, quality gate + correction loop,
+                   model routing policy, error recovery loop with
+                   idempotency keys, project lifecycle
+                   (PLANNED..COMPLETED/FAILED), security report builder
 
 Usage:
     python -m octo_core --goal "research sql injection and answer how to prevent it"
 """
-__version__ = "1.4.0"
+__version__ = "1.5.0"

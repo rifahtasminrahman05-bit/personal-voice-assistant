@@ -435,13 +435,32 @@ state_snapshot() / state_rollback()`.
 
 বাকি ক্যাটাগরি (1, 11, 12, 14) আগের মডিউলগুলোতেই ছিল — কোনো ডুপ্লিকেট যোগ করা হয়নি।
 
-Tests (402 tests across `tests/`: cognitive, security,
+## 👑 OCTO AI — Ultimate Master System (`octo_core/master.py`, version 1.5.0)
+
+Master System Prompt spec-এর বাকি অংশগুলো কার্যকর কোডে রূপায়িত:
+
+| Spec Section | ক্লাস / ধ্রুবক | বর্ণনা |
+| --- | --- | --- |
+| §1, §20 | `MASTER_SYSTEM_PROMPT` | OCTO AI identity + ৭ নীতি + Think. Plan. Execute. Verify. Deliver. |
+| §3, §5 | `MasterOrchestrator` | সম্পূর্ণ ৮-ধাপ পাইপলাইন: intent → requirements → decomposition → agent assignment → tool selection → execution → verification → delivery; parallel-safe results, conflict resolution (majority), project checkpoint |
+| §4 | `AgentRegistry` | ২০ specialist agent — ৫ ডিভিশন (Intelligence / Software / Security / Automation / Business) — role, objective, tools, I/O schema, status, permission level; **যতক্ষণ না register+enable করা হয়, agent টা দিয়ে কিছু করা যায় না — কোনো ভুয়া agent নেই** |
+| §5 | `ProjectManager` | project id/objective/milestones/checkpoints/resume + lifecycle: PLANNED → IN_PROGRESS → BLOCKED/REQUIRES_APPROVAL/UNDER_VERIFICATION → COMPLETED/FAILED (অবৈধ ট্রানজিশন ব্লক) |
+| §8 | `SecurityReportBuilder` | scope/methodology/findings/risk/evidence/impact/remediation/verification — markdown রিপোর্ট |
+| §14 | `PermissionLevels` | LEVEL 0 (read-only) → LEVEL 4 (destructive/financial) — confirmation checklist, unknown action → LEVEL 2 |
+| §15 | `QualityGate` | ৮-পয়েন্ট self-verification checklist + correction loop (validate → correct → retry ≤ limit → verify) |
+| §16 | `ModelRoutingPolicy` | capability/latency/private অনুযায়ী registered মডেল route — available না হলে বলে দেয়, কখনো ধরে নেয় না |
+| §17 | `ErrorRecoveryLoop` | DETECT → CLASSIFY → LOG → RETRY IF SAFE (destructive-এ blind retry নিষেধ) → RECOVER → VERIFY → REPORT + idempotency keys |
+
+Session API: `OctoSession.master_status() / master_enable("research", ...) / master_run(goal)` — Lab flow-এর সাথে যুক্ত।
+
+Tests (420 tests across `tests/`: cognitive, security,
 memory, OctoV2 model + speculative, agents + parallel, learning, evaluation,
 infrastructure, multimodal, main pipeline, desktop session/app,
 cross-platform, train_v2, sandbox code, jobs, bench history, settings,
 memory export, evolution/red-team/distill/continual, 185-feature expansion
 (voice, smart home, desktop control, vision, assistant, system, surveillance,
-research, robotics, rifah, integrations)):
+research, robotics, rifah, integrations), OCTO AI master system
+(orchestrator, agent registry, permissions, quality gate, recovery, projects)):
 
 CI runs the test suite on every push/PR (`.github/workflows/ci.yml`).
 

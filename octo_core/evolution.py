@@ -173,7 +173,8 @@ def capability_manifest(session=None):
                      ("octo_core.researchint", "fact checking, news monitor, reports, source verify"),
                      ("octo_core.robotics", "sensors, motors, navigation, manipulation, e-stop"),
                      ("octo_core.rifah", "HUD, suit diagnostics, tactical analysis, maintenance"),
-                     ("octo_core.integrations", "phone/watch/IoT bus, local vault, secure messaging")):
+                     ("octo_core.integrations", "phone/watch/IoT bus, local vault, secure messaging"),
+                     ("octo_core.master", "master orchestrator, 20-agent registry, LEVEL 0-4 permissions, quality gate, error recovery, project lifecycle")):
         try:
             __import__(mod)
             caps["capabilities"].append({"id": mod.split(".")[-1], "detail": cap})

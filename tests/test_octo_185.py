@@ -580,3 +580,228 @@ class TestCryptoFallback:
         again = integ.LocalVault(path=str(tmp_path / "v.bin"),
                                  key_path=str(tmp_path / "v.key"))
         assert again.get("k") == {"a": 1}
+
+
+# --------------------------------------------------- OCTO AI master system
+class TestMasterSystem:
+    def make_orch(self, tmp_path):
+        from octo_core.master import AgentRegistry, MasterOrchestrator
+        reg = AgentRegistry()
+        reg.register("coding", handler=lambda task, payload:
+                     {"wrote": task, "keywords": "def main()"})
+        reg.register("research", handler=lambda task, payload:
+                     {"sources_checked": 3, "topic": task})
+        orch = MasterOrchestrator(registry=reg)
+        return orch
+
+    def test_210_master_prompt_and_registry(self, tmp_path, monkeypatch):
+        from octo_core.master import AgentRegistry, MASTER_SYSTEM_PROMPT
+        assert "Think. Plan. Execute. Verify. Deliver." in MASTER_SYSTEM_PROMPT
+        monkeypatch.chdir(tmp_path)
+        reg = AgentRegistry()
+        assert len(reg.CATALOG) == 20
+        assert not reg.is_available("coding")  # nothing capable by default
+        reg.register("coding", handler=lambda t, p: t)
+        assert reg.is_available("coding")
+        assert reg.available("security") == []  # division filter
+        with pytest.raises(KeyError):
+            reg.register("fabricated-agent")
+
+    def test_211_intent_requirements_decomposition(self, tmp_path,
+                                                   monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        orch = self.make_orch(tmp_path)
+        assert orch.analyze_intent("debug the payment bug")["intent"] \
+            == "coding"
+        req = orch.analyze_requirements("refactor in python, keep it offline")
+        assert req["language"] == "python" and "offline" in req["constraints"]
+        steps = orch.decompose("first scan the host. then analyze services.")
+        assert steps[0] == "first scan the host"
+        assert steps[1] == "analyze services"  # connectors stripped
+
+    def test_212_full_pipeline_delivery(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        orch = self.make_orch(tmp_path)
+        out = orch.run("write python code for the parser. then research parsing.")
+        assert set(out) >= {"intent", "requirements", "decomposition",
+                            "agent_assignment", "execution",
+                            "verification", "delivery", "project"}
+        assert out["delivery"]["status"] in ("COMPLETED", "BLOCKED")
+        project = orch.projects.projects[out["project"]]
+        assert project["requirements"] == out["requirements"]
+
+    def test_213_no_fabricated_agents(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        orch = self.make_orch(tmp_path)
+        out = orch.run("rotate the backup tapes on mars")  # unassignable
+        assert out["failures"]
+        assert all(f["error"] == "no registered agent can handle this"
+                   for f in out["failures"])
+        assert out["delivery"]["status"] == "BLOCKED"
+
+    def test_214_level_3_agent_needs_approval(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        from octo_core.master import AgentRegistry
+        reg = AgentRegistry()
+        called = []
+        reg.register("business", handler=lambda t, p: called.append(t),
+                     level=3)
+        out = reg.run("business", "send invoice")
+        assert out["status"] == "REQUIRES_APPROVAL" and not called
+        out = reg.run("business", "send invoice",
+                      approve=lambda a, d: True)
+        assert out["ok"] and called
+        out2 = reg.run("business", "send invoice")
+        assert not out2["ok"]  # still gated next time
+
+    def test_215_registry_run_unregistered(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        from octo_core.master import AgentRegistry
+        reg = AgentRegistry()
+        out = reg.run("pentest", "attack target")
+        assert out["status"] == "not_registered"
+
+    def test_216_permission_levels(self):
+        from octo_core.master import PermissionLevels
+        assert PermissionLevels.required_level("read the log") == 0
+        assert PermissionLevels.required_level("save the note") == 1
+        assert PermissionLevels.required_level("run the test") == 2
+        assert PermissionLevels.required_level("deploy to prod") == 4
+        assert PermissionLevels.required_level("rm -rf data") == 4
+        check = PermissionLevels.check("deploy to prod", granted_level=2)
+        assert not check["allowed"] and check["requires"]
+        allowed = PermissionLevels.check("deploy to prod", granted_level=2,
+                                         approve=lambda a, d: True)
+        assert allowed["allowed"] and allowed["confirmed"]
+        assert PermissionLevels.confirmations_for(4)
+
+    def test_217_quality_gate_and_correction_loop(self):
+        from octo_core.master import QualityGate
+        gate = QualityGate()
+        bad = {c: False for c in gate.CHECKS}
+        assert not gate.evaluate(bad)["pass"]
+        good = {c: True for c in gate.CHECKS}
+        assert gate.evaluate(good, expect_keywords=("octo",))["pass"] is False
+        result = QualityGate.correction_loop(
+            lambda r: r["n"] >= 2,
+            lambda attempt: {"n": attempt + 1})
+        assert result["ok"] and result["attempts"] == 2
+        failed = QualityGate.correction_loop(
+            lambda r: False, lambda a: {}, retries=2)
+        assert not failed["ok"] and failed["attempts"] == 2
+
+    def test_218_model_routing_policy(self):
+        from octo_core.master import ModelRoutingPolicy
+        router = ModelRoutingPolicy()
+        router.register("octo-fast", ("coding",), cost=0.2, latency=0.2)
+        router.register("octo-reason", ("reasoning", "coding"), cost=0.8,
+                        latency=0.8)
+        router.register("cloud-vision", ("vision",), local=False)
+        assert router.route({"capability": "reasoning"})["model"] \
+            == "octo-reason"
+        coding = router.route({"capability": "coding", "latency": "fast"})
+        assert coding["model"] == "octo-fast"
+        private = router.route({"capability": "vision", "private": True})
+        assert private["available"] is False  # never assumes a private cloud model
+        offline = router.route({"capability": "voice"})
+        assert offline["model"] is None and not offline["available"]
+
+    def test_219_error_recovery_loop(self, tmp_path, monkeypatch):
+        from octo_core.master import ErrorRecoveryLoop
+        monkeypatch.chdir(tmp_path)
+        loop = ErrorRecoveryLoop(max_retries=2)
+        assert loop.classify("connection reset by peer") == "network"
+        assert loop.classify("request timeout after 30s") == "timeout"
+        report = loop.handle("timeout", retry=lambda: "ok",
+                             verify=lambda out: out == "ok")
+        assert report["recovered"] and report["verified"]
+        destructive = loop.handle("rm -rf /tmp/target failed",
+                                  retry=lambda: "reran")
+        assert not destructive["retried"]
+        assert destructive["reason"].startswith("destructive")
+
+    def test_220_idempotency_keys(self, tmp_path, monkeypatch):
+        from octo_core.master import ErrorRecoveryLoop
+        monkeypatch.chdir(tmp_path)
+        loop = ErrorRecoveryLoop()
+        calls = []
+        first = loop.idempotent("deploy-42", lambda: calls.append(1) or "done")
+        again = loop.idempotent("deploy-42", lambda: calls.append(1) or "done")
+        assert first["result"] == again["result"] == "done"
+        assert first["duplicate"] is False and again["duplicate"] is True
+        assert len(calls) == 1  # ran exactly once
+
+    def test_221_project_lifecycle(self, tmp_path, monkeypatch):
+        from octo_core.master import ProjectManager
+        monkeypatch.chdir(tmp_path)
+        pm = ProjectManager(store=str(tmp_path / "projects.json"))
+        pid = pm.create("ship octo", requirements=["offline"], agents=["coding"])
+        assert pm.transition(pid, "IN_PROGRESS")["ok"]
+        assert not pm.transition(pid, "COMPLETED")["ok"]  # invalid jump
+        pm.add_task(pid, "write code", assigned="coding")
+        pm.add_task(pid, "write tests", assigned="testing")
+        pm.complete_task(pid, "write code")
+        pm.milestone(pid, "alpha")
+        assert pm.projects[pid]["progress"] == 0.5
+        resume = pm.resume(pid)
+        assert resume["pending"] == ["write tests"]
+        pm.complete_task(pid, "write tests")
+        pm.transition(pid, "UNDER_VERIFICATION")
+        assert pm.transition(pid, "COMPLETED")["ok"]
+        stored = ProjectManager(store=str(tmp_path / "projects.json"))
+        assert stored.projects[pid]["status"] == "COMPLETED"
+
+    def test_222_security_report_builder(self):
+        from octo_core.master import SecurityReportBuilder
+        builder = SecurityReportBuilder()
+        empty = builder.build()
+        assert not empty["complete"] and "scope" in empty["missing"]
+        builder.set("scope", "lab only").set("methodology", "OWASP") \
+            .set("findings", "2 low").set("risk_level", "low") \
+            .set("remediation", "patch").set("evidence", "logs") \
+            .set("impact", "minimal").set("verification_results", "retested")
+        out = builder.build()
+        assert out["complete"]
+        assert "# Security Assessment" in builder.to_markdown()
+
+    def test_223_conflict_resolution_majority(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        orch = self.make_orch(tmp_path)
+        resolved = orch.resolve_conflicts({
+            "agentA": {"answer": "x"}, "agentB": {"answer": "x"},
+            "agentC": {"answer": "y"},
+        })
+        assert resolved["answer"]["value"] == "x"  # majority
+        assert sorted(resolved["answer"]["sources"]) == \
+            ["agentA", "agentB", "agentC"]
+
+    def test_224_session_master_integration(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        corpus = tmp_path / "corpus"
+        corpus.mkdir()
+        (corpus / "notes.txt").write_text(
+            "octo master orchestrator coordinates specialist agents with "
+            "verification and permission levels built in.", encoding="utf-8")
+        from octo_core.desktop import OctoSession
+        s = OctoSession(roots=(str(corpus),),
+                        checkpoint="/nonexistent/octo.pt")
+        status = s.master_status()
+        assert status["agents_catalogued"] == 20
+        assert status["agents_registered"] == []
+        s.master_enable("research", "coding")
+        assert "research" in s.master_status()["agents_registered"]
+        out = s.master_run("research the topic. then code the fix.")
+        assert "delivery" in out
+
+    def test_225_agents_with_generic_handler(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        from octo_core.master import AgentRegistry
+        reg = AgentRegistry()
+        reg.register("planning", handler=lambda t, p: {"steps": [t]})
+        out = reg.run("planning", "plan the sprint", payload="")
+        assert out["ok"] and out["result"] == {"steps": ["plan the sprint"]}
+        assert reg.agents["planning"]["status"] == "idle"
+        reg.register("coding", handler=lambda t, p: 1 / 0)
+        bad = reg.run("coding", "boom")
+        assert not bad["ok"] and bad["status"] == "FAILED"
+        assert reg.agents["coding"]["status"] == "error"

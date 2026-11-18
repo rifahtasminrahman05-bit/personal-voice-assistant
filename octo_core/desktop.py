@@ -11,6 +11,8 @@ from .agentstate import AgentState
 from .benchhistory import BenchmarkHistory
 from .cognitive import DecisionEngine
 from .cognitive_core import CognitiveCore
+from .master import (MASTER_SYSTEM_PROMPT, AgentRegistry, MasterOrchestrator,
+                     PermissionLevels, QualityGate, ModelRoutingPolicy)
 from .evaluation import AgentMetrics, BenchmarkSuite, HallucinationDetector
 from .evolution import RedTeamSuite, capability_manifest
 from .humanai import SentimentDetector
@@ -53,6 +55,9 @@ class OctoSession:
         self.sentiment = SentimentDetector()
         self.degrade_mgr = GracefulDegradation()
         self.core = CognitiveCore(audit=self.audit)
+        self.master_registry = AgentRegistry()
+        self.master = MasterOrchestrator(registry=self.master_registry,
+                                         audit=self.audit)
 
     def status(self):
         backend, model = self._router_info()
@@ -303,6 +308,28 @@ class OctoSession:
     def core_cycle(self, user_input, approve=None, path=None):
         out = self.core.cycle(user_input, approve=approve, path=path)
         return out
+
+    # ---- OCTO AI master system ----
+    def master_status(self):
+        return {
+            "prompt": MASTER_SYSTEM_PROMPT[:80] + "...",
+            "agents_registered": self.master_registry.available(),
+            "agents_catalogued": len(self.master_registry.CATALOG),
+        }
+
+    def master_enable(self, *names, handler=None):
+        """Register/enable specialist agents (nothing counts as capable
+        until it is explicitly registered)."""
+        for name in names:
+            self.master_registry.register(name, handler=handler)
+        return self.master_registry.available()
+
+    def master_run(self, goal, expect_keywords=(), approve=None):
+        """Full master pipeline: intent → requirements → decomposition →
+        assignment → tools → execution → verification → delivery."""
+        if approve is not None:
+            self.master.approve = approve
+        return self.master.run(goal, expect_keywords=expect_keywords)
 
     def voice_listen(self):
         """STT via the shared SpeechEngine; graceful text when unavailable."""
