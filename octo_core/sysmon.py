@@ -8,6 +8,7 @@ Uses psutil when available; falls back to /proc and heuristics.
 No network, no telemetry.
 """
 import os
+import shutil
 import time
 
 try:
@@ -99,13 +100,11 @@ class StorageMonitor:
             return {"total_gb": round(usage.total / 1e9, 1),
                     "free_gb": round(usage.free / 1e9, 1),
                     "percent": usage.percent}
-        stat = os.statvfs(path)
-        total = stat.f_blocks * stat.f_frsize
-        free = stat.f_bavail * stat.f_frsize
-        return {"total_gb": round(total / 1e9, 1),
-                "free_gb": round(free / 1e9, 1),
-                "percent": round(100.0 * (total - free) / total, 1)
-                if total else 0.0}
+        usage = shutil.disk_usage(path)  # cross-platform (windows + posix)
+        return {"total_gb": round(usage.total / 1e9, 1),
+                "free_gb": round(usage.free / 1e9, 1),
+                "percent": round(100.0 * usage.used / usage.total, 1)
+                if usage.total else 0.0}
 
 
 class NetworkMonitor:
