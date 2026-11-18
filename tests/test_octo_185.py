@@ -559,3 +559,24 @@ class TestIntegrations:
         for system in ("linux", "darwin", "nt"):
             profile = integrations.MultiPlatformSupport().profile(system)
             assert profile["ui"] == "tkinter"
+
+
+class TestCryptoFallback:
+    def test_208_xor_cipher_fallback(self):
+        cipher = integrations._XorCipher(b"octo-test-key")
+        token = cipher.encrypt(b"secret vault data")
+        assert b"secret vault data" not in token
+        assert cipher.decrypt(token) == b"secret vault data"
+
+    def test_209_vault_without_cryptography(self, tmp_path, monkeypatch):
+        import octo_core.integrations as integ
+        monkeypatch.setattr(integ, "_HAVE_FERNET", False)
+        vault = integ.LocalVault(path=str(tmp_path / "v.bin"),
+                                 key_path=str(tmp_path / "v.key"))
+        assert isinstance(vault._fernet, integ._XorCipher)
+        vault.put("k", {"a": 1})
+        raw = (tmp_path / "v.bin").read_bytes()
+        assert b'"a": 1' not in raw
+        again = integ.LocalVault(path=str(tmp_path / "v.bin"),
+                                 key_path=str(tmp_path / "v.key"))
+        assert again.get("k") == {"a": 1}

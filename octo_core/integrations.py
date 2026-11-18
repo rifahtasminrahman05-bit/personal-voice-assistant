@@ -8,11 +8,52 @@ support. Everything runs through a local message bus; nothing ever
 leaves the machine. Cloud sync is intentionally replaced by an
 encrypted local vault.
 """
+import base64
+import hashlib
 import json
 import os
 import time
 
-from cryptography.fernet import Fernet
+try:
+    from cryptography.fernet import Fernet
+    _HAVE_FERNET = True
+except ImportError:
+    Fernet = None
+    _HAVE_FERNET = False
+
+
+class _XorCipher:
+    """Stdlib fallback cipher (SHA-256 keystream) used when the optional
+    `cryptography` package is not installed. Weaker than Fernet but keeps
+    the vault and messenger working with zero hard dependencies."""
+
+    def __init__(self, key=b"octo-local-key"):
+        self.key = key
+
+    @staticmethod
+    def generate_key():
+        return os.urandom(32)
+
+    def _keystream(self, nonce, length):
+        out = b""
+        counter = 0
+        while len(out) < length:
+            out += hashlib.sha256(
+                self.key + nonce + counter.to_bytes(4, "big")).digest()
+            counter += 1
+        return out[:length]
+
+    def encrypt(self, data):
+        nonce = os.urandom(8)
+        stream = self._keystream(nonce, len(data))
+        return base64.urlsafe_b64encode(
+            nonce + bytes(a ^ b for a, b in zip(data, stream)))
+
+    def decrypt(self, token):
+        raw = base64.urlsafe_b64decode(token)
+        nonce, body = raw[:8], raw[8:]
+        stream = self._keystream(nonce, len(body))
+        return bytes(a ^ b for a, b in zip(body, stream))
 
 
 class LocalMessageBus:
@@ -139,12 +180,17 @@ class LocalVault:
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         if os.path.exists(key_path):
             with open(key_path, "rb") as fh:
-                self._fernet = Fernet(fh.read().strip())
-        else:
+                key = fh.read().strip()
+            self._fernet = Fernet(key) if _HAVE_FERNET else _XorCipher(key)
+        elif _HAVE_FERNET:
             key = Fernet.generate_key()
             with open(key_path, "wb") as fh:
                 fh.write(key)
             self._fernet = Fernet(key)
+        else:
+            with open(key_path, "wb") as fh:
+                fh.write(b"octo-local-key")
+            self._fernet = _XorCipher()
         self.items = {}
         self._load()
 
@@ -226,7 +272,12 @@ class SecureMessenger:
     """183. Secure Messaging: Fernet-encrypted local threads."""
 
     def __init__(self, fernet=None):
-        self._fernet = fernet or Fernet(Fernet.generate_key())
+        if fernet is not None:
+            self._fernet = fernet
+        elif _HAVE_FERNET:
+            self._fernet = Fernet(Fernet.generate_key())
+        else:
+            self._fernet = _XorCipher(os.urandom(32))
         self.threads = {}
 
     def send(self, thread, sender, text):
