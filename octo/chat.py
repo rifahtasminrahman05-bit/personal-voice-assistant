@@ -25,7 +25,12 @@ def load_model(checkpoint, device):
         model = ckpt.to(device)
         model.eval()
     else:
-        cfg = OctoConfig(**ckpt["config"])
+        cfgd = ckpt["config"]
+        if "n_kv_heads" in cfgd:
+            # OctoV2 checkpoint (RoPE + GQA) — needs the v2 model class.
+            from octo_core.train_v2 import load_v2
+            return load_v2(checkpoint, device=device)
+        cfg = OctoConfig(**cfgd)
         model = OctoModel(cfg).to(device)
         model.load_state_dict(ckpt["model_state"])
         model.eval()

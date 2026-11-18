@@ -83,7 +83,7 @@ def main():
     print('CLI mode. Commands: সাহায্য | আবহাওয়া | মনে রাখো ...\n')
     speech.speak(f'হ্যালো! আমি {config.ASSISTANT_NAME}.')
     conversation_loop(brain, speech, voice_mode)
-    if brain.crypto:
+    if brain.crypto and hasattr(brain.crypto, "lock"):
         brain.crypto.lock()
 
 if __name__ == '__main__':
